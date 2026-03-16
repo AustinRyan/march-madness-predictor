@@ -1,0 +1,325 @@
+================================================================================
+MARCH MADNESS AI — BRACKET COMPARISON REPORT
+50,000 Monte Carlo simulations | 28 ML features | 11 upset conditions
+================================================================================
+
+TOP 10 CHAMPIONSHIP CONTENDERS (from simulation)
+------------------------------------------------------------
+  (1) Duke                  Champ: 19.8%  F4: 43.3%
+  (1) Arizona               Champ: 11.3%  F4: 33.7%
+  (1) Michigan              Champ: 8.3%  F4: 31.0%
+  (2) Houston               Champ: 6.4%  F4: 18.8%
+  (2) Purdue                Champ: 5.6%  F4: 19.5%
+  (1) Florida               Champ: 5.2%  F4: 22.7%
+  (3) Illinois              Champ: 5.0%  F4: 19.0%
+  (2) Iowa St.              Champ: 5.0%  F4: 18.3%
+  (2) Connecticut           Champ: 3.2%  F4: 11.7%
+  (4) Arkansas              Champ: 2.9%  F4: 11.8%
+
+================================================================================
+BRACKET GRID: RISK x POOL SIZE
+================================================================================
+
+
+Pool Size: 50
+----------------------------------------------------------------------
+  Risk   Champion       Final Four                                           Diffs Upsets  Chalk%
+  ----   --------       ----------                                           ----- ------  ------
+  0.1    Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.             0      7  88.9%
+  0.3    Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.            2      9  85.7%
+  0.5    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.7    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.9    Iowa St.       (3)Michigan St., (3)Illinois, (1)Arizona, (2)Iowa St.     7     11  82.5%
+
+Pool Size: 500
+----------------------------------------------------------------------
+  Risk   Champion       Final Four                                           Diffs Upsets  Chalk%
+  ----   --------       ----------                                           ----- ------  ------
+  0.1    Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.             0      7  88.9%
+  0.3    Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.            2      9  85.7%
+  0.5    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.7    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.9    Iowa St.       (3)Michigan St., (3)Illinois, (1)Arizona, (2)Iowa St.     7     11  82.5%
+
+Pool Size: 10,000
+----------------------------------------------------------------------
+  Risk   Champion       Final Four                                           Diffs Upsets  Chalk%
+  ----   --------       ----------                                           ----- ------  ------
+  0.1    Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.             0      7  88.9%
+  0.3    Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.            2      9  85.7%
+  0.5    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.7    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.9    Iowa St.       (3)Michigan St., (3)Illinois, (1)Arizona, (2)Iowa St.     7     11  82.5%
+
+Pool Size: 1,000,000
+----------------------------------------------------------------------
+  Risk   Champion       Final Four                                           Diffs Upsets  Chalk%
+  ----   --------       ----------                                           ----- ------  ------
+  0.1    Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.             0      7  88.9%
+  0.3    Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.            2      9  85.7%
+  0.5    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.7    Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     6     10  84.1%
+  0.9    Iowa St.       (3)Michigan St., (3)Illinois, (1)Arizona, (2)Iowa St.     7     11  82.5%
+
+================================================================================
+FULL BRACKET — SAFE (risk=0.1, pool=1,000,000)
+Champion: Duke  |  Upsets: 7  |  Diffs from safe: 0
+================================================================================
+
+  ROUND OF 64
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (16) Siena              -> Duke               ML:88%
+    East         (8) Ohio St.           vs (9) TCU                -> Ohio St.           ML:55%
+    East         (5) St. John's         vs (12) Northern Iowa      -> St. John's         ML:76%
+    East         (4) Kansas             vs (13) Cal Baptist        -> Kansas             ML:82%
+    East         (6) Louisville         vs (11) South Florida      -> Louisville         ML:58%
+    East         (3) Michigan St.       vs (14) North Dakota St.   -> Michigan St.       ML:82%
+    East         (7) UCLA               vs (10) UCF                -> UCLA               ML:70%
+    East         (2) Connecticut        vs (15) Furman             -> Connecticut        ML:86%
+    South        (1) Florida            vs (16) Prairie View       -> Florida            ML:86%
+    South        (8) Clemson            vs (9) Iowa               -> Clemson            ML:53%
+    South        (5) Vanderbilt         vs (12) McNeese St.        -> McNeese St.        ML:43% UPSET
+    South        (4) Nebraska           vs (13) Troy               -> Nebraska           ML:82%
+    South        (6) North Carolina     vs (11) VCU                -> North Carolina     ML:64%
+    South        (3) Illinois           vs (14) Penn               -> Illinois           ML:83%
+    South        (7) St. Mary's         vs (10) Texas A&M          -> St. Mary's         ML:65%
+    South        (2) Houston            vs (15) Idaho              -> Houston            ML:87%
+    West         (1) Arizona            vs (16) LIU                -> Arizona            ML:86%
+    West         (8) Villanova          vs (9) Utah St.           -> Villanova          ML:56%
+    West         (5) Wisconsin          vs (12) High Point         -> Wisconsin          ML:74%
+    West         (4) Arkansas           vs (13) Hawaii             -> Arkansas           ML:83%
+    West         (6) BYU                vs (11) Texas              -> BYU                ML:60%
+    West         (3) Gonzaga            vs (14) Kennesaw St.       -> Gonzaga            ML:84%
+    West         (7) Miami FL           vs (10) Missouri           -> Miami FL           ML:69%
+    West         (2) Purdue             vs (15) Queens             -> Purdue             ML:85%
+    Midwest      (1) Michigan           vs (16) UMBC               -> Michigan           ML:87%
+    Midwest      (8) Georgia            vs (9) Saint Louis        -> Georgia            ML:67%
+    Midwest      (5) Texas Tech         vs (12) Akron              -> Texas Tech         ML:72%
+    Midwest      (4) Alabama            vs (13) Hofstra            -> Alabama            ML:78%
+    Midwest      (6) Tennessee          vs (11) Miami OH           -> Tennessee          ML:77%
+    Midwest      (3) Virginia           vs (14) Wright St.         -> Virginia           ML:84%
+    Midwest      (7) Kentucky           vs (10) Santa Clara        -> Kentucky           ML:55%
+    Midwest      (2) Iowa St.           vs (15) Tennessee St.      -> Iowa St.           ML:86%
+
+  ROUND OF 32
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (8) Ohio St.           -> Duke               ML:80%
+    East         (5) St. John's         vs (4) Kansas             -> St. John's         ML:64% UPSET
+    East         (6) Louisville         vs (3) Michigan St.       -> Michigan St.       ML:52%
+    East         (7) UCLA               vs (2) Connecticut        -> Connecticut        ML:51%
+    South        (1) Florida            vs (8) Clemson            -> Florida            ML:69%
+    South        (5) Vanderbilt         vs (4) Nebraska           -> Vanderbilt         ML:55% UPSET
+    South        (6) North Carolina     vs (3) Illinois           -> Illinois           ML:68%
+    South        (7) St. Mary's         vs (2) Houston            -> St. Mary's         ML:49% UPSET
+    West         (1) Arizona            vs (8) Villanova          -> Arizona            ML:77%
+    West         (5) Wisconsin          vs (4) Arkansas           -> Arkansas           ML:59%
+    West         (6) BYU                vs (3) Gonzaga            -> Gonzaga            ML:54%
+    West         (7) Miami FL           vs (2) Purdue             -> Purdue             ML:66%
+    Midwest      (1) Michigan           vs (8) Georgia            -> Michigan           ML:72%
+    Midwest      (5) Texas Tech         vs (4) Alabama            -> Alabama            ML:58%
+    Midwest      (6) Tennessee          vs (3) Virginia           -> Tennessee          ML:51% UPSET
+    Midwest      (7) Kentucky           vs (2) Iowa St.           -> Iowa St.           ML:62%
+
+  SWEET 16
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (5) St. John's         -> Duke               ML:76%
+    East         (3) Michigan St.       vs (2) Connecticut        -> Connecticut        ML:62%
+    South        (1) Florida            vs (5) Vanderbilt         -> Florida            ML:68%
+    South        (3) Illinois           vs (7) St. Mary's         -> Illinois           ML:71%
+    West         (1) Arizona            vs (4) Arkansas           -> Arizona            ML:67%
+    West         (3) Gonzaga            vs (2) Purdue             -> Purdue             ML:63%
+    Midwest      (1) Michigan           vs (4) Alabama            -> Michigan           ML:70%
+    Midwest      (6) Tennessee          vs (2) Iowa St.           -> Iowa St.           ML:61%
+
+  ELITE 8
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (2) Connecticut        -> Duke               ML:73%
+    South        (1) Florida            vs (3) Illinois           -> Florida            ML:54%
+    West         (1) Arizona            vs (2) Purdue             -> Arizona            ML:62%
+    Midwest      (1) Michigan           vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  FINAL FOUR
+  ────────────────────────────────────────────────────────────────────
+    Final Four   (1) Duke               vs (1) Florida            -> Duke               ML:64%
+    Final Four   (1) Arizona            vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  CHAMPIONSHIP
+  ────────────────────────────────────────────────────────────────────
+    Championship (1) Duke               vs (2) Iowa St.           -> Duke               ML:57%
+
+================================================================================
+FULL BRACKET — BALANCED (risk=0.5, pool=1,000,000)
+Champion: Iowa St.  |  Upsets: 10  |  Diffs from safe: 6
+================================================================================
+
+  ROUND OF 64
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (16) Siena              -> Duke               ML:88%
+    East         (8) Ohio St.           vs (9) TCU                -> Ohio St.           ML:55%
+    East         (5) St. John's         vs (12) Northern Iowa      -> St. John's         ML:76%
+    East         (4) Kansas             vs (13) Cal Baptist        -> Kansas             ML:82%
+    East         (6) Louisville         vs (11) South Florida      -> Louisville         ML:58%
+    East         (3) Michigan St.       vs (14) North Dakota St.   -> Michigan St.       ML:82%
+    East         (7) UCLA               vs (10) UCF                -> UCLA               ML:70%
+    East         (2) Connecticut        vs (15) Furman             -> Connecticut        ML:86%
+    South        (1) Florida            vs (16) Prairie View       -> Florida            ML:86%
+    South        (8) Clemson            vs (9) Iowa               -> Clemson            ML:53%
+    South        (5) Vanderbilt         vs (12) McNeese St.        -> McNeese St.        ML:43% UPSET
+    South        (4) Nebraska           vs (13) Troy               -> Nebraska           ML:82%
+    South        (6) North Carolina     vs (11) VCU                -> North Carolina     ML:64%
+    South        (3) Illinois           vs (14) Penn               -> Illinois           ML:83%
+    South        (7) St. Mary's         vs (10) Texas A&M          -> St. Mary's         ML:65%
+    South        (2) Houston            vs (15) Idaho              -> Houston            ML:87%
+    West         (1) Arizona            vs (16) LIU                -> Arizona            ML:86%
+    West         (8) Villanova          vs (9) Utah St.           -> Utah St.           ML:44% UPSET ** DIFF (safe=Villanova)
+    West         (5) Wisconsin          vs (12) High Point         -> Wisconsin          ML:74%
+    West         (4) Arkansas           vs (13) Hawaii             -> Arkansas           ML:83%
+    West         (6) BYU                vs (11) Texas              -> BYU                ML:60%
+    West         (3) Gonzaga            vs (14) Kennesaw St.       -> Gonzaga            ML:84%
+    West         (7) Miami FL           vs (10) Missouri           -> Miami FL           ML:69%
+    West         (2) Purdue             vs (15) Queens             -> Purdue             ML:85%
+    Midwest      (1) Michigan           vs (16) UMBC               -> Michigan           ML:87%
+    Midwest      (8) Georgia            vs (9) Saint Louis        -> Georgia            ML:67%
+    Midwest      (5) Texas Tech         vs (12) Akron              -> Texas Tech         ML:72%
+    Midwest      (4) Alabama            vs (13) Hofstra            -> Alabama            ML:78%
+    Midwest      (6) Tennessee          vs (11) Miami OH           -> Tennessee          ML:77%
+    Midwest      (3) Virginia           vs (14) Wright St.         -> Virginia           ML:84%
+    Midwest      (7) Kentucky           vs (10) Santa Clara        -> Kentucky           ML:55%
+    Midwest      (2) Iowa St.           vs (15) Tennessee St.      -> Iowa St.           ML:86%
+
+  ROUND OF 32
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (8) Ohio St.           -> Duke               ML:80%
+    East         (5) St. John's         vs (4) Kansas             -> St. John's         ML:64% UPSET
+    East         (6) Louisville         vs (3) Michigan St.       -> Michigan St.       ML:52%
+    East         (7) UCLA               vs (2) Connecticut        -> Connecticut        ML:51%
+    South        (1) Florida            vs (8) Clemson            -> Florida            ML:69%
+    South        (12) McNeese St.        vs (4) Nebraska           -> McNeese St.        ML:44% UPSET ** DIFF (safe=Vanderbilt)
+    South        (6) North Carolina     vs (3) Illinois           -> Illinois           ML:68%
+    South        (7) St. Mary's         vs (2) Houston            -> St. Mary's         ML:49% UPSET
+    West         (1) Arizona            vs (9) Utah St.           -> Arizona            ML:77%
+    West         (5) Wisconsin          vs (4) Arkansas           -> Arkansas           ML:59%
+    West         (6) BYU                vs (3) Gonzaga            -> Gonzaga            ML:54%
+    West         (7) Miami FL           vs (2) Purdue             -> Purdue             ML:66%
+    Midwest      (1) Michigan           vs (8) Georgia            -> Michigan           ML:72%
+    Midwest      (5) Texas Tech         vs (4) Alabama            -> Alabama            ML:58%
+    Midwest      (6) Tennessee          vs (3) Virginia           -> Tennessee          ML:51% UPSET
+    Midwest      (7) Kentucky           vs (2) Iowa St.           -> Iowa St.           ML:62%
+
+  SWEET 16
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (5) St. John's         -> Duke               ML:76%
+    East         (3) Michigan St.       vs (2) Connecticut        -> Connecticut        ML:62%
+    South        (1) Florida            vs (12) McNeese St.        -> Florida            ML:77%
+    South        (3) Illinois           vs (7) St. Mary's         -> Illinois           ML:71%
+    West         (1) Arizona            vs (4) Arkansas           -> Arizona            ML:67%
+    West         (3) Gonzaga            vs (2) Purdue             -> Purdue             ML:63%
+    Midwest      (1) Michigan           vs (4) Alabama            -> Michigan           ML:70%
+    Midwest      (6) Tennessee          vs (2) Iowa St.           -> Iowa St.           ML:61%
+
+  ELITE 8
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (2) Connecticut        -> Connecticut        ML:27% UPSET ** DIFF (safe=Duke)
+    South        (1) Florida            vs (3) Illinois           -> Illinois           ML:46% UPSET ** DIFF (safe=Florida)
+    West         (1) Arizona            vs (2) Purdue             -> Arizona            ML:62%
+    Midwest      (1) Michigan           vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  FINAL FOUR
+  ────────────────────────────────────────────────────────────────────
+    Final Four   (2) Connecticut        vs (3) Illinois           -> Connecticut        ML:49% ** DIFF (safe=Duke)
+    Final Four   (1) Arizona            vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  CHAMPIONSHIP
+  ────────────────────────────────────────────────────────────────────
+    Championship (2) Connecticut        vs (2) Iowa St.           -> Iowa St.           ML:56% ** DIFF (safe=Duke)
+
+================================================================================
+FULL BRACKET — MAX CONTRARIAN (risk=0.9, pool=1,000,000)
+Champion: Iowa St.  |  Upsets: 11  |  Diffs from safe: 7
+================================================================================
+
+  ROUND OF 64
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (16) Siena              -> Duke               ML:88%
+    East         (8) Ohio St.           vs (9) TCU                -> Ohio St.           ML:55%
+    East         (5) St. John's         vs (12) Northern Iowa      -> St. John's         ML:76%
+    East         (4) Kansas             vs (13) Cal Baptist        -> Kansas             ML:82%
+    East         (6) Louisville         vs (11) South Florida      -> Louisville         ML:58%
+    East         (3) Michigan St.       vs (14) North Dakota St.   -> Michigan St.       ML:82%
+    East         (7) UCLA               vs (10) UCF                -> UCLA               ML:70%
+    East         (2) Connecticut        vs (15) Furman             -> Connecticut        ML:86%
+    South        (1) Florida            vs (16) Prairie View       -> Florida            ML:86%
+    South        (8) Clemson            vs (9) Iowa               -> Clemson            ML:53%
+    South        (5) Vanderbilt         vs (12) McNeese St.        -> McNeese St.        ML:43% UPSET
+    South        (4) Nebraska           vs (13) Troy               -> Nebraska           ML:82%
+    South        (6) North Carolina     vs (11) VCU                -> North Carolina     ML:64%
+    South        (3) Illinois           vs (14) Penn               -> Illinois           ML:83%
+    South        (7) St. Mary's         vs (10) Texas A&M          -> St. Mary's         ML:65%
+    South        (2) Houston            vs (15) Idaho              -> Houston            ML:87%
+    West         (1) Arizona            vs (16) LIU                -> Arizona            ML:86%
+    West         (8) Villanova          vs (9) Utah St.           -> Utah St.           ML:44% UPSET ** DIFF (safe=Villanova)
+    West         (5) Wisconsin          vs (12) High Point         -> Wisconsin          ML:74%
+    West         (4) Arkansas           vs (13) Hawaii             -> Arkansas           ML:83%
+    West         (6) BYU                vs (11) Texas              -> BYU                ML:60%
+    West         (3) Gonzaga            vs (14) Kennesaw St.       -> Gonzaga            ML:84%
+    West         (7) Miami FL           vs (10) Missouri           -> Miami FL           ML:69%
+    West         (2) Purdue             vs (15) Queens             -> Purdue             ML:85%
+    Midwest      (1) Michigan           vs (16) UMBC               -> Michigan           ML:87%
+    Midwest      (8) Georgia            vs (9) Saint Louis        -> Georgia            ML:67%
+    Midwest      (5) Texas Tech         vs (12) Akron              -> Texas Tech         ML:72%
+    Midwest      (4) Alabama            vs (13) Hofstra            -> Alabama            ML:78%
+    Midwest      (6) Tennessee          vs (11) Miami OH           -> Tennessee          ML:77%
+    Midwest      (3) Virginia           vs (14) Wright St.         -> Virginia           ML:84%
+    Midwest      (7) Kentucky           vs (10) Santa Clara        -> Kentucky           ML:55%
+    Midwest      (2) Iowa St.           vs (15) Tennessee St.      -> Iowa St.           ML:86%
+
+  ROUND OF 32
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (8) Ohio St.           -> Duke               ML:80%
+    East         (5) St. John's         vs (4) Kansas             -> St. John's         ML:64% UPSET
+    East         (6) Louisville         vs (3) Michigan St.       -> Michigan St.       ML:52%
+    East         (7) UCLA               vs (2) Connecticut        -> Connecticut        ML:51%
+    South        (1) Florida            vs (8) Clemson            -> Florida            ML:69%
+    South        (12) McNeese St.        vs (4) Nebraska           -> McNeese St.        ML:44% UPSET ** DIFF (safe=Vanderbilt)
+    South        (6) North Carolina     vs (3) Illinois           -> Illinois           ML:68%
+    South        (7) St. Mary's         vs (2) Houston            -> St. Mary's         ML:49% UPSET
+    West         (1) Arizona            vs (9) Utah St.           -> Arizona            ML:77%
+    West         (5) Wisconsin          vs (4) Arkansas           -> Arkansas           ML:59%
+    West         (6) BYU                vs (3) Gonzaga            -> Gonzaga            ML:54%
+    West         (7) Miami FL           vs (2) Purdue             -> Purdue             ML:66%
+    Midwest      (1) Michigan           vs (8) Georgia            -> Michigan           ML:72%
+    Midwest      (5) Texas Tech         vs (4) Alabama            -> Alabama            ML:58%
+    Midwest      (6) Tennessee          vs (3) Virginia           -> Tennessee          ML:51% UPSET
+    Midwest      (7) Kentucky           vs (2) Iowa St.           -> Iowa St.           ML:62%
+
+  SWEET 16
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (5) St. John's         -> Duke               ML:76%
+    East         (3) Michigan St.       vs (2) Connecticut        -> Michigan St.       ML:38% UPSET ** DIFF (safe=Connecticut)
+    South        (1) Florida            vs (12) McNeese St.        -> Florida            ML:77%
+    South        (3) Illinois           vs (7) St. Mary's         -> Illinois           ML:71%
+    West         (1) Arizona            vs (4) Arkansas           -> Arizona            ML:67%
+    West         (3) Gonzaga            vs (2) Purdue             -> Purdue             ML:63%
+    Midwest      (1) Michigan           vs (4) Alabama            -> Michigan           ML:70%
+    Midwest      (6) Tennessee          vs (2) Iowa St.           -> Iowa St.           ML:61%
+
+  ELITE 8
+  ────────────────────────────────────────────────────────────────────
+    East         (1) Duke               vs (3) Michigan St.       -> Michigan St.       ML:26% UPSET ** DIFF (safe=Duke)
+    South        (1) Florida            vs (3) Illinois           -> Illinois           ML:46% UPSET ** DIFF (safe=Florida)
+    West         (1) Arizona            vs (2) Purdue             -> Arizona            ML:62%
+    Midwest      (1) Michigan           vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  FINAL FOUR
+  ────────────────────────────────────────────────────────────────────
+    Final Four   (3) Michigan St.       vs (3) Illinois           -> Michigan St.       ML:44% ** DIFF (safe=Duke)
+    Final Four   (1) Arizona            vs (2) Iowa St.           -> Iowa St.           ML:49% UPSET
+
+  CHAMPIONSHIP
+  ────────────────────────────────────────────────────────────────────
+    Championship (3) Michigan St.       vs (2) Iowa St.           -> Iowa St.           ML:59% ** DIFF (safe=Duke)
+
+================================================================================
+ANTI-CHALK RULES
+================================================================================
+  [FLAGGED] Rule 4: FLAGGED: (9) Iowa — KenPom #25 but seeded #9 (discrepancy: 11)

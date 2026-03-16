@@ -226,6 +226,26 @@ def _pick_game(
     blended_prob = (1.0 - blend_factor) * ml_prob + blend_factor * equity_prob
     blended_prob = np.clip(blended_prob, 0.02, 0.98)
 
+    # Tiered ML probability floor: prevents reckless equity flips in early
+    # rounds but allows full equity differentiation in late rounds where
+    # pool points are highest and differentiation matters most.
+    _ROUND_ML_FLOOR = {
+        64: 0.35,   # R64/R32: 35% minimum — protect against early busts
+        32: 0.35,
+        16: 0.30,   # S16: 30% — slightly more aggressive
+        8:  0.0,    # E8: no floor — equity has full control
+        4:  0.0,    # F4: no floor
+        2:  0.0,    # Championship: no floor
+    }
+    ml_floor = _ROUND_ML_FLOOR.get(round_num, 0.35)
+    if ml_floor > 0:
+        if blended_prob < 0.5 and ml_prob > (1.0 - ml_floor):
+            # Equity wants team_b but ML is too confident in team_a
+            blended_prob = ml_prob
+        elif blended_prob >= 0.5 and ml_prob < ml_floor:
+            # Equity wants team_a but ML is too confident in team_b
+            blended_prob = ml_prob
+
     # Pick winner
     winner = team_a if blended_prob >= 0.5 else team_b
     is_upset = (winner == team_b and seed_a < seed_b) or (winner == team_a and seed_a > seed_b)

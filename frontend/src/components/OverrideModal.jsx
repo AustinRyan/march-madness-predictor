@@ -11,8 +11,9 @@ export default function OverrideModal({ game, onConfirm, onCancel, alerts }) {
   const defeatedSeed = clickedTeam === team_a ? seed_b : seed_a;
   const winProb = clickedTeam === team_a ? ml_prob_a : (1 - (ml_prob_a ?? 0.5));
 
-  // Find upset alert for this matchup
-  const alert = alerts?.find(a =>
+  // Find upset alert for this matchup (alerts may be {items: [...]} or array)
+  const alertItems = Array.isArray(alerts) ? alerts : alerts?.items ?? [];
+  const alert = alertItems.find(a =>
     (a.favorite === team_a && a.underdog === team_b) ||
     (a.favorite === team_b && a.underdog === team_a)
   );
