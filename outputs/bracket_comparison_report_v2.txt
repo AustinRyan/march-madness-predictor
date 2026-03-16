@@ -1,0 +1,75 @@
+==========================================================================================
+MARCH MADNESS AI — BRACKET COMPARISON REPORT v2
+Pool size now affects effective risk: eff_risk = risk × log10(pool) / log10(1M)
+==========================================================================================
+
+EFFECTIVE RISK TABLE
+------------------------------------------------------------
+  Risk           Pool 50      Pool 500    Pool 10000  Pool 1000000
+  ----        ----------    ----------    ----------    ----------
+  0.1              0.028         0.045         0.067         0.100
+  0.3              0.085         0.135         0.200         0.300
+  0.5              0.142         0.225         0.333         0.500
+  0.7              0.198         0.315         0.467         0.700
+  0.9              0.255         0.405         0.600         0.900
+
+TOP 10 CHAMPIONSHIP CONTENDERS
+------------------------------------------------------------
+  (1) Duke                  Champ: 19.8%  F4: 43.3%
+  (1) Arizona               Champ: 11.3%  F4: 33.7%
+  (1) Michigan              Champ: 8.3%  F4: 31.0%
+  (2) Houston               Champ: 6.4%  F4: 18.8%
+  (2) Purdue                Champ: 5.6%  F4: 19.5%
+  (1) Florida               Champ: 5.2%  F4: 22.7%
+  (3) Illinois              Champ: 5.0%  F4: 19.0%
+  (2) Iowa St.              Champ: 5.0%  F4: 18.3%
+  (2) Connecticut           Champ: 3.2%  F4: 11.7%
+  (4) Arkansas              Champ: 2.9%  F4: 11.8%
+
+POOL SIZE: 50
+-------------------------------------------------------------------------------------
+  Risk   Eff.Risk  Champion       Final Four                                   Diffs Upsets  Chalk%
+  ────── ───────── ────────────── ──────────────────────────────────────────── ───── ────── ───────
+  0.1    0.028     Duke           (1)Duke, (2)Houston, (1)Arizona, (2)Iowa St.     0      7  88.9%
+  0.3    0.085     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.5    0.142     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.7    0.198     Iowa St.       (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     4      8  87.3%
+  0.9    0.255     Iowa St.       (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     4      8  87.3%
+
+POOL SIZE: 500
+-------------------------------------------------------------------------------------
+  Risk   Eff.Risk  Champion       Final Four                                   Diffs Upsets  Chalk%
+  ────── ───────── ────────────── ──────────────────────────────────────────── ───── ────── ───────
+  0.1    0.045     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.3    0.135     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.5    0.225     Iowa St.       (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     4      8  87.3%
+  0.7    0.315     Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.     4      9  85.7%
+  0.9    0.405     Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.     5     10  84.1%
+
+POOL SIZE: 10,000
+-------------------------------------------------------------------------------------
+  Risk   Eff.Risk  Champion       Final Four                                   Diffs Upsets  Chalk%
+  ────── ───────── ────────────── ──────────────────────────────────────────── ───── ────── ───────
+  0.1    0.067     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.3    0.200     Iowa St.       (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     4      8  87.3%
+  0.5    0.333     Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.     4      9  85.7%
+  0.7    0.467     Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     8     10  84.1%
+  0.9    0.600     Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     8     10  84.1%
+
+POOL SIZE: 1,000,000
+-------------------------------------------------------------------------------------
+  Risk   Eff.Risk  Champion       Final Four                                   Diffs Upsets  Chalk%
+  ────── ───────── ────────────── ──────────────────────────────────────────── ───── ────── ───────
+  0.1    0.100     Duke           (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.     3      7  88.9%
+  0.3    0.300     Iowa St.       (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.     4      9  85.7%
+  0.5    0.500     Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     8     10  84.1%
+  0.7    0.700     Iowa St.       (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.     8     10  84.1%
+  0.9    0.900     Iowa St.       (3)Michigan St., (3)Illinois, (1)Arizona, (2)Iowa St.     9     11  82.5%
+
+==========================================================================================
+KEY COMPARISON: risk=0.5 across pool sizes
+==========================================================================================
+  Pool         50  eff_risk=0.142  Champion=Duke            F4: (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.
+  Pool        500  eff_risk=0.225  Champion=Iowa St.        F4: (1)Duke, (1)Florida, (1)Arizona, (2)Iowa St.
+  Pool     10,000  eff_risk=0.333  Champion=Iowa St.        F4: (1)Duke, (3)Illinois, (1)Arizona, (2)Iowa St.
+  Pool  1,000,000  eff_risk=0.500  Champion=Iowa St.        F4: (2)Connecticut, (3)Illinois, (1)Arizona, (2)Iowa St.

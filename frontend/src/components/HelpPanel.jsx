@@ -22,13 +22,13 @@ The higher the risk, the more the system weighs "equity" (how undervalued a team
     icon: '👥',
     content: `Pool size tells the system how many brackets you're competing against.
 
-**Small pools (10–100):** You don't need many upsets. A solid, accurate bracket can win. Keep risk low (0.1–0.3).
+**Small pools (10–100):** You don't need many upsets. A solid, accurate bracket can win. Even at high risk settings, the system automatically dampens the contrarian picks because you only need to beat a handful of people.
 
-**Medium pools (100–10,000):** You need some differentiation. A few well-placed upsets can separate you from the pack. Risk 0.4–0.6 works well.
+**Medium pools (100–10,000):** You need some differentiation. The system scales up the equity weighting proportionally — at risk 0.5 in a 10,000-person pool, you'll see Illinois replace Florida in the Final Four and a few strategic upsets.
 
-**Large pools (10,000+):** You MUST be different to win. Picking all chalk guarantees you split with thousands of identical brackets. Crank the risk to 0.6–0.8 and target high-equity picks.
+**Large pools (10,000+):** You MUST be different to win. At risk 0.5 in a million-person pool, the system goes full contrarian — Connecticut in the Final Four, non-1-seeds advancing deep. This is because picking chalk means splitting with thousands of identical brackets.
 
-The pool size doesn't change the model's win probabilities — it changes how aggressively the optimizer targets contrarian picks.`,
+**How it works under the hood:** Pool size automatically adjusts your effective risk level. At risk 0.5, a pool of 50 gives you an effective risk of just 0.14 (very conservative), while a pool of 1 million gives you the full 0.50. Think of it this way: in a small office pool, you're competing against your coworkers — play it safe. In a massive public pool, you're competing against a million strangers who all picked Duke — be different.`,
   },
   {
     id: 'bracket',

@@ -50,7 +50,17 @@ def optimize_bracket(
     Returns:
         Dict with bracket picks, corrections, and metadata.
     """
-    log.info("Optimizing bracket with risk=%.2f, pool_size=%d", risk, pool_size)
+    # Pool size dampens the effective risk level:
+    # Small pool (50) → you don't need much differentiation, dampen risk
+    # Large pool (1M) → you need max differentiation, full risk
+    # Formula: effective_risk = risk × log10(pool_size) / log10(1,000,000)
+    import math
+    pool_factor = math.log10(max(pool_size, 2)) / math.log10(1_000_000)
+    pool_factor = min(max(pool_factor, 0.1), 1.0)  # clamp to [0.1, 1.0]
+    effective_risk = risk * pool_factor
+
+    log.info("Optimizing bracket with risk=%.2f, pool_size=%d, effective_risk=%.3f (pool_factor=%.2f)",
+             risk, pool_size, effective_risk, pool_factor)
 
     teams_lookup = current_teams_df.set_index("team_name")
 
@@ -81,7 +91,7 @@ def optimize_bracket(
             if row_a is None or row_b is None:
                 continue
             winner, pick_info = _pick_game(
-                row_a, row_b, 64, prob_cache, eq_lookup, risk, region_name
+                row_a, row_b, 64, prob_cache, eq_lookup, effective_risk, region_name
             )
             r64_winners.append(winner)
             all_picks.append(pick_info)
@@ -92,7 +102,7 @@ def optimize_bracket(
             winner, pick_info = _pick_game(
                 _to_series(r64_winners[i], teams_lookup),
                 _to_series(r64_winners[i + 1], teams_lookup),
-                32, prob_cache, eq_lookup, risk, region_name
+                32, prob_cache, eq_lookup, effective_risk, region_name
             )
             r32_winners.append(winner)
             all_picks.append(pick_info)
@@ -103,7 +113,7 @@ def optimize_bracket(
             winner, pick_info = _pick_game(
                 _to_series(r32_winners[i], teams_lookup),
                 _to_series(r32_winners[i + 1], teams_lookup),
-                16, prob_cache, eq_lookup, risk, region_name
+                16, prob_cache, eq_lookup, effective_risk, region_name
             )
             s16_winners.append(winner)
             all_picks.append(pick_info)
@@ -112,7 +122,7 @@ def optimize_bracket(
         winner, pick_info = _pick_game(
             _to_series(s16_winners[0], teams_lookup),
             _to_series(s16_winners[1], teams_lookup),
-            8, prob_cache, eq_lookup, risk, region_name
+            8, prob_cache, eq_lookup, effective_risk, region_name
         )
         all_picks.append(pick_info)
         region_picks[region_name] = winner
@@ -121,12 +131,12 @@ def optimize_bracket(
     ff1_winner, ff1_info = _pick_game(
         _to_series(region_picks["East"], teams_lookup),
         _to_series(region_picks["South"], teams_lookup),
-        4, prob_cache, eq_lookup, risk, "Final Four"
+        4, prob_cache, eq_lookup, effective_risk, "Final Four"
     )
     ff2_winner, ff2_info = _pick_game(
         _to_series(region_picks["West"], teams_lookup),
         _to_series(region_picks["Midwest"], teams_lookup),
-        4, prob_cache, eq_lookup, risk, "Final Four"
+        4, prob_cache, eq_lookup, effective_risk, "Final Four"
     )
     all_picks.append(ff1_info)
     all_picks.append(ff2_info)
@@ -135,7 +145,7 @@ def optimize_bracket(
     champ_winner, champ_info = _pick_game(
         _to_series(ff1_winner, teams_lookup),
         _to_series(ff2_winner, teams_lookup),
-        2, prob_cache, eq_lookup, risk, "Championship"
+        2, prob_cache, eq_lookup, effective_risk, "Championship"
     )
     all_picks.append(champ_info)
 
@@ -143,7 +153,7 @@ def optimize_bracket(
 
     # Apply anti-chalk rules
     corrections = _enforce_anti_chalk(
-        picks_df, current_teams_df, prob_cache, eq_lookup, risk, teams_lookup
+        picks_df, current_teams_df, prob_cache, eq_lookup, effective_risk, teams_lookup
     )
 
     final_four = {
