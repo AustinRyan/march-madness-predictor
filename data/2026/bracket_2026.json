@@ -1,0 +1,100 @@
+{
+  "year": 2026,
+  "first_four": {
+    "note": "First Four winners fill the 11 and 16 seeds in West and Midwest regions",
+    "games": [
+      {"region": "West",    "seed": 11, "team_a": "Texas",       "record_a": "18-14", "team_b": "NC State",     "record_b": "20-13"},
+      {"region": "South",   "seed": 16, "team_a": "Prairie View A&M", "record_a": "18-17", "team_b": "Lehigh", "record_b": "18-16"},
+      {"region": "Midwest", "seed": 16, "team_a": "UMBC",        "record_a": "24-8",  "team_b": "Howard",       "record_b": "23-10"},
+      {"region": "Midwest", "seed": 11, "team_a": "Miami (OH)",  "record_a": "31-1",  "team_b": "SMU",          "record_b": "20-13"}
+    ]
+  },
+  "East": {
+    "one_seed": "Duke",
+    "location": "Washington D.C. (Sweet 16/Elite 8); Greenville SC (R64/R32)",
+    "teams": [
+      {"seed": 1,  "team": "Duke",             "record": "32-2"},
+      {"seed": 16, "team": "Siena",            "record": "23-11"},
+      {"seed": 8,  "team": "Ohio State",       "record": "21-12"},
+      {"seed": 9,  "team": "TCU",              "record": "22-11"},
+      {"seed": 5,  "team": "St. John's",       "record": "28-6"},
+      {"seed": 12, "team": "Northern Iowa",    "record": "23-12"},
+      {"seed": 4,  "team": "Kansas",           "record": "23-10"},
+      {"seed": 13, "team": "Cal Baptist",      "record": "25-8"},
+      {"seed": 6,  "team": "Louisville",       "record": "23-10"},
+      {"seed": 11, "team": "South Florida",    "record": "25-8"},
+      {"seed": 3,  "team": "Michigan State",   "record": "25-7"},
+      {"seed": 14, "team": "North Dakota State","record": "27-7"},
+      {"seed": 7,  "team": "UCLA",             "record": "23-11"},
+      {"seed": 10, "team": "UCF",              "record": "21-11"},
+      {"seed": 2,  "team": "UConn",            "record": "29-5"},
+      {"seed": 15, "team": "Furman",           "record": "22-12"}
+    ]
+  },
+  "South": {
+    "one_seed": "Florida",
+    "location": "Houston TX (Sweet 16/Elite 8); Tampa FL + Oklahoma City OK (R64/R32)",
+    "teams": [
+      {"seed": 1,  "team": "Florida",          "record": "26-7"},
+      {"seed": 16, "team": "TBD (Prairie View A&M or Lehigh)", "record": "TBD - First Four winner"},
+      {"seed": 8,  "team": "Clemson",          "record": "24-10"},
+      {"seed": 9,  "team": "Iowa",             "record": "21-12"},
+      {"seed": 5,  "team": "Vanderbilt",       "record": "26-8"},
+      {"seed": 12, "team": "McNeese",          "record": "28-5"},
+      {"seed": 4,  "team": "Nebraska",         "record": "26-6"},
+      {"seed": 13, "team": "Troy",             "record": "22-11"},
+      {"seed": 6,  "team": "North Carolina",   "record": "24-8"},
+      {"seed": 11, "team": "VCU",              "record": "27-7"},
+      {"seed": 3,  "team": "Illinois",         "record": "24-8"},
+      {"seed": 14, "team": "Penn",             "record": "18-11"},
+      {"seed": 7,  "team": "Saint Mary's",     "record": "27-5"},
+      {"seed": 10, "team": "Texas A&M",        "record": "21-11"},
+      {"seed": 2,  "team": "Houston",          "record": "28-6"},
+      {"seed": 15, "team": "Idaho",            "record": "21-14"}
+    ]
+  },
+  "West": {
+    "one_seed": "Arizona",
+    "location": "San Jose CA (Sweet 16/Elite 8); San Diego CA + Portland OR (R64/R32)",
+    "teams": [
+      {"seed": 1,  "team": "Arizona",          "record": "32-2"},
+      {"seed": 16, "team": "LIU",              "record": "24-10"},
+      {"seed": 8,  "team": "Villanova",        "record": "24-8"},
+      {"seed": 9,  "team": "Utah State",       "record": "28-6"},
+      {"seed": 5,  "team": "Wisconsin",        "record": "24-10"},
+      {"seed": 12, "team": "High Point",       "record": "30-4"},
+      {"seed": 4,  "team": "Arkansas",         "record": "26-8"},
+      {"seed": 13, "team": "Hawai'i",          "record": "24-8"},
+      {"seed": 6,  "team": "BYU",              "record": "23-11"},
+      {"seed": 11, "team": "TBD (Texas or NC State)", "record": "TBD - First Four winner"},
+      {"seed": 3,  "team": "Gonzaga",          "record": "30-3"},
+      {"seed": 14, "team": "Kennesaw State",   "record": "21-13"},
+      {"seed": 7,  "team": "Miami (FL)",       "record": "25-8"},
+      {"seed": 10, "team": "Missouri",         "record": "20-12"},
+      {"seed": 2,  "team": "Purdue",           "record": "27-8"},
+      {"seed": 15, "team": "Queens",           "record": "21-13"}
+    ]
+  },
+  "Midwest": {
+    "one_seed": "Michigan",
+    "location": "Chicago IL (Sweet 16/Elite 8); Buffalo NY + St. Louis MO (R64/R32)",
+    "teams": [
+      {"seed": 1,  "team": "Michigan",         "record": "31-3"},
+      {"seed": 16, "team": "TBD (UMBC or Howard)", "record": "TBD - First Four winner"},
+      {"seed": 8,  "team": "Georgia",          "record": "22-10"},
+      {"seed": 9,  "team": "Saint Louis",      "record": "28-5"},
+      {"seed": 5,  "team": "Texas Tech",       "record": "22-10"},
+      {"seed": 12, "team": "Akron",            "record": "29-5"},
+      {"seed": 4,  "team": "Alabama",          "record": "23-9"},
+      {"seed": 13, "team": "Hofstra",          "record": "24-10"},
+      {"seed": 6,  "team": "Tennessee",        "record": "22-11"},
+      {"seed": 11, "team": "TBD (Miami OH or SMU)", "record": "TBD - First Four winner"},
+      {"seed": 3,  "team": "Virginia",         "record": "29-5"},
+      {"seed": 14, "team": "Wright State",     "record": "23-11"},
+      {"seed": 7,  "team": "Kentucky",         "record": "21-13"},
+      {"seed": 10, "team": "Santa Clara",      "record": "26-8"},
+      {"seed": 2,  "team": "Iowa State",       "record": "27-7"},
+      {"seed": 15, "team": "Tennessee State",  "record": "23-9"}
+    ]
+  }
+}
