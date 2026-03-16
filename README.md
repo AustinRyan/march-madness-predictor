@@ -2,7 +2,7 @@
 
 A production-grade NCAA March Madness bracket prediction system powered by a 3-model ML ensemble, Monte Carlo simulation, and pool equity optimization. Built to maximize expected winnings in bracket pools — not just pick accuracy.
 
-![Python](https://img.shields.io/badge/Python-3.11+-blue) ![React](https://img.shields.io/badge/React-18-61DAFB) ![XGBoost](https://img.shields.io/badge/XGBoost-Ensemble-green) ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
+![Python](https://img.shields.io/badge/Python-3.9+-blue) ![React](https://img.shields.io/badge/React-18-61DAFB) ![XGBoost](https://img.shields.io/badge/XGBoost-Ensemble-green) ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688)
 
 ## What This Does
 
@@ -10,10 +10,11 @@ Most bracket tools pick the "most likely" winner of each game. That's a losing s
 
 This system takes a different approach:
 
-1. **ML Model** predicts game-by-game win probabilities using 28 engineered features
+1. **ML Model** predicts game-by-game win probabilities using 28 engineered features from KenPom, Barttorvik, and Vegas lines
 2. **Monte Carlo Simulator** runs 50,000 full tournaments to get team-specific advancement rates
-3. **Pool Equity Engine** identifies where the public is wrong — teams the model rates higher than the crowd expects
+3. **Pool Equity Engine** compares ML win probabilities against BetMGM championship odds to identify where the betting public is wrong
 4. **Bracket Optimizer** generates two brackets: a safe bracket (ML-driven) and an equity bracket (contrarian, maximizing pool differentiation)
+5. **11-Condition Upset Detector** with Vegas line integration flags volatile games across all rounds
 
 The equity bracket intentionally picks upsets where the model sees value the public doesn't — the key to winning large bracket pools.
 
@@ -40,139 +41,127 @@ All three models are calibrated via **Platt scaling** (`CalibratedClassifierCV`)
 | Group | Features | Source |
 |-------|----------|--------|
 | **Efficiency** (4) | AdjEM diff, BARTHAG diff, AdjO diff, AdjD diff | KenPom, Barttorvik |
-| **Stylistic Matchup** (6) | Tempo mismatch, 3PT clash, turnover battle, rebounding, FT rate, shot quality | KenPom, Barttorvik, Shooting Splits |
+| **Stylistic Matchup** (6) | Tempo mismatch, 3PT clash, turnover battle, rebounding, FT rate, shot quality | KenPom, Barttorvik |
 | **Variance/Experience** (3) | Experience diff, height diff, talent diff | KenPom, Barttorvik |
 | **Luck/Momentum** (4) | Luck rating diff, luck vs top-25, preseason momentum, rank delta | TeamRankings, KenPom Preseason |
 | **Historical/Context** (8) | Seed diff, upset rate, KenPom-seed discrepancy, ELO, Q1 wins, auto-bid flags | Resumes, Seed Results, Upset History |
 | **Travel** (2) | Distance diff, timezone diff | Tournament Locations |
 
-NaN values are preserved (not zero-filled) — XGBoost and LightGBM handle missing values natively via their split algorithms.
+For 2026 predictions, full feature coverage is achieved for all 68 tournament teams via the KenPom_Barttorvik dataset including 3PT%, TOV%, OREB%, experience, height, and talent.
 
 ### Model Performance
 
 | Metric | Ensemble | Chalk Baseline | Vegas Proxy |
 |--------|----------|----------------|-------------|
 | **Accuracy** | 76.2% | 79.4% | 81.0% |
-| **Log Loss** | **0.465** | 0.491 | 0.482 |
+| **Log Loss** | **0.464** | 0.491 | 0.482 |
 | **Brier Score** | **0.149** | 0.156 | 0.156 |
-| **AUC** | **0.862** | 0.769 | 0.849 |
+| **AUC** | **0.863** | 0.769 | 0.849 |
 
-The ensemble beats all baselines on log loss, Brier score, and AUC — the metrics that matter for probabilistic predictions and pool equity. Raw accuracy favors chalk because most games are won by the better seed.
+The ensemble beats all baselines on log loss, Brier score, and AUC — the metrics that matter for probabilistic predictions and pool equity.
 
-### Regularization (Overfitting Prevention)
+### Regularization
 
-After diagnostics revealed 100% training accuracy (severe overfitting), the following fixes were applied:
 - XGBoost: `max_depth=3`, `n_estimators=150`, `min_child_weight=10`
 - LightGBM: `num_leaves=15`, `min_child_samples=20`
-- Neural Net: 2 hidden layers (not 4), `dropout=0.5`, early stopping with `patience=10`
-- Removed 4 toxic features: `program_champ_pct` (blue-blood proxy), `coach_pake` (temporal leakage), `coach_experience` (same), `bpi_diff` (35% coverage)
+- Neural Net: 2 hidden layers, `dropout=0.5`, early stopping with `patience=10`
+- Training accuracy under 85% for all models (overfitting resolved)
 
-Final training accuracy: 81.6% (XGB), 84.4% (LGB), 72.7% (NN) — under the 85% target.
+## Upset Detection
 
-## Data Sources
+11-condition rule-based detector running on ALL tournament rounds (R64 through F4):
 
-All data from real CSV files — no synthetic or mock data.
+| # | Condition | Source | R64 Trigger Rate |
+|---|-----------|--------|-----------------|
+| 1 | KenPom rank gap ≤ 15 | KenPom 2026 | 18.8% |
+| 2 | Tempo mismatch > 8 possessions | Barttorvik | 3.1% |
+| 3 | Favorite overperformed (Luck regression) | KenPom | 34.4% |
+| 4 | Underdog coach PAKE > average | Coach Results | 31.2% |
+| 5 | Underdog underperformed (Luck regression up) | KenPom | 25.0% |
+| 6 | Style clash (both top-30 O/D) | KenPom | 3.1% |
+| 7 | Historical upset rate > 30% for seed pairing | Upset History | 37.5% |
+| 8 | AdjEM gap < 8 points | KenPom | 31.2% |
+| 9 | Favorite WAB rank > 20 | Barttorvik | 37.5% |
+| **10** | **Vegas line ≤ 5.5 points** | **BetMGM** | **25.0%** |
+| **11** | **Vegas implied upset prob > 25%** | **BetMGM** | **31.2%** |
 
-### Historical Training Data (2008–2025)
-| File | Description | Rows |
-|------|-------------|------|
-| `KenPom Barttorvik.csv` | Combined KenPom + Barttorvik metrics for every tournament team | 1,147 |
-| `Barttorvik Neutral.csv` | Neutral-site-only stats (more predictive for tournament) | 1,147 |
-| `Tournament Matchups.csv` | Every tournament game with scores | 2,140 |
-| `Tournament Locations.csv` | Travel distance and timezone data per game | 2,140 |
-| `DEV _ March Madness.csv` | Master 165-column KenPom file with Pre-Tournament metrics | 8,315 |
-| `Resumes.csv` | ELO, Q1 wins, bid type | 1,147 |
-| `TeamRankings.csv` | Luck metrics and consistency ratings | 1,147 |
-| `Shooting Splits.csv` | Shot zone breakdowns (2010+) | 1,017 |
-| `KenPom Preseason.csv` | Preseason vs final rankings (momentum) | 884 |
+R64 alerts use known matchups. R32+ alerts use projected matchups from the bracket optimizer.
 
-### 2026 Current Season
-| File | Description |
-|------|-------------|
-| `kenpom_2026.csv` | Current KenPom ratings for all 364 D1 teams |
-| `barttorvik_2026.csv` | Current Barttorvik T-Rank stats |
-| `bracket_2026.json` | Official 2026 NCAA tournament bracket (68 teams) |
-| `public_picks_2026.csv` | Public pick percentages (seed-based priors calibrated to ESPN behavior) |
+## Pool Equity System
 
-### Reference Data
-| File | Description |
-|------|-------------|
-| `Coach Results.csv` | 319 coaches' tournament records |
-| `Seed Results.csv` | Historical win rates by seed |
-| `Team Results.csv` | All-time program tournament performance |
-| `Upset Seed Info.csv` | Every upset 2008–2025 by seed matchup |
+### Public Pick Source
+
+Championship pick percentages are derived from **BetMGM moneyline odds** (March 15, 2026), converted to implied probabilities and normalized to 100%. Round-by-round picks (R64–F4) use seed-based priors calibrated to ESPN bracket challenge behavior.
+
+Key equity examples:
+- **Duke**: 19.8% sim championship vs 13.6% public → equity **1.44** (model more bullish than market)
+- **Michigan**: 8.3% sim vs 13.9% public → equity **0.52** (market far more bullish than model)
+- **Louisville**: 2.9% sim vs 0.97% public → equity **3.00** (massive contrarian value)
+
+### Equity Formula
+
+```
+Equity Score = ML Win Probability / Public Pick Percentage
+```
+
+The optimizer blends ML probability with equity at round-dependent weights:
+- R64/R32: up to 30% equity
+- S16: up to 60% equity
+- E8: up to 75% equity
+- F4/Championship: up to 85-90% equity
 
 ## System Components
 
 ```
-data_pipeline.py    → Loads 18 CSV files, standardizes team names (fuzzy matching),
-                      builds historical game pairs and 2026 team stats
-features.py         → Computes 28 differential features per matchup
-model.py            → Trains XGBoost + LightGBM + Neural Net ensemble with calibration
-upset_detector.py   → 9-flag rule-based upset detection for R64 games
-pool_equity.py      → Equity scores: ML win probability ÷ public pick percentage
+data_pipeline.py    → Loads 19 data sources, standardizes names, builds team stats
+features.py         → Computes 28 differential features per matchup (NaN-native)
+model.py            → 3-model ensemble with Platt calibration
+upset_detector.py   → 11-condition detector across all rounds with Vegas integration
+pool_equity.py      → BetMGM-derived equity scoring
 simulator.py        → 50,000 Monte Carlo tournament simulations
-optimizer.py        → Bracket optimization with anti-chalk rules enforcement
-main.py             → CLI interface with Rich tables and side-by-side bracket output
-backend/app.py      → FastAPI backend (6 endpoints)
-frontend/           → React 18 + Vite + TailwindCSS + Recharts + Framer Motion
+optimizer.py        → Risk-tunable bracket optimization with anti-chalk rules
+main.py             → Rich CLI with side-by-side bracket output
+backend/app.py      → FastAPI backend (8 endpoints including override + Vegas)
+frontend/           → React 18 + Vite + TailwindCSS interactive bracket UI
 ```
 
-## Setup Instructions
+## Setup
 
 ### Prerequisites
-- Python 3.9+
-- Node.js 18+
-- Homebrew (macOS, for `libomp`)
+- Python 3.9+, Node.js 18+, Homebrew (macOS for `libomp`)
 
-### Backend Setup
+### Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/march-madness-predictor.git
+git clone https://github.com/AustinRyan/march-madness-predictor.git
 cd march-madness-predictor
 
-# Install Python dependencies
+# Install Python deps
 pip install -r requirements.txt
+brew install libomp  # macOS only
 
-# macOS: install OpenMP runtime (required for XGBoost)
-brew install libomp
-
-# Train the ML models (runs ~3 minutes)
+# Train models (~3 min)
 python model.py
 
-# Run the CLI
-python main.py --year 2026 --risk 0.7 --show-upsets --explain
-```
+# CLI
+python main.py --year 2026 --risk 0.5 --show-upsets --explain
 
-### Frontend Setup
-
-```bash
-# Install frontend dependencies
-cd frontend
-npm install
-
-# Start the backend (from project root)
-cd ..
+# Backend + Frontend
 uvicorn backend.app:app --port 8001
-
-# Start the frontend (from frontend/)
-cd frontend
-npm run dev -- --port 5180
+cd frontend && npm install && npm run dev -- --port 5180
+# Open http://localhost:5180
 ```
-
-Then open `http://localhost:5180` in your browser.
 
 ### CLI Options
 
 ```bash
 python main.py \
   --year 2026 \
-  --risk 0.7 \              # 0.0 = pure chalk, 1.0 = max contrarian
-  --pool-size 1000000 \     # Assumed bracket pool size
-  --show-upsets \            # Display upset alert panel
-  --explain \                # Show model benchmark comparison
-  --sims 50000 \            # Number of Monte Carlo simulations
+  --risk 0.5 \              # 0.0 = pure chalk, 1.0 = max contrarian
+  --pool-size 1000000 \
+  --show-upsets \
+  --explain \
+  --sims 50000 \
   --output table             # table | json | csv
 ```
 
@@ -180,37 +169,24 @@ python main.py \
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/run-simulation` | POST | Run full simulation with `{risk, pool_size, year}` |
-| `/api/bracket-data` | GET | 2026 bracket structure |
-| `/api/upset-alerts` | GET | Upset detection results (32 games, 9 flags) |
-| `/api/team-stats/{name}` | GET | Full stats for a specific team |
-| `/api/model-benchmark` | GET | Model accuracy vs baselines |
-| `/api/equity-data` | GET | Pool equity scores for all teams |
+| `/api/run-simulation` | POST | Full simulation + both brackets |
+| `/api/bracket-data` | GET | Bracket structure |
+| `/api/upset-alerts` | GET | All-round alerts with Vegas conditions |
+| `/api/team-stats/{name}` | GET | Full stats for any team |
+| `/api/model-benchmark` | GET | Model vs baselines |
+| `/api/equity-data` | GET | Pool equity scores |
+| `/api/vegas-lines` | GET | Vegas spreads/moneylines |
+| `/api/override-pick` | POST | Manual bracket override with cascade |
 
-## How the Equity System Works
+## Data Files
 
-The core insight: in a large bracket pool, picking all favorites makes your bracket identical to millions of others. Even if you score well, you split the winnings with everyone else who picked chalk.
-
-**Equity Score = ML Win Probability ÷ Public Pick Percentage**
-
-- Duke: 19.2% sim championship rate ÷ 22% public pick = **0.87 equity** (overvalued by public)
-- Illinois: 4.4% sim rate ÷ 1.5% public pick = **2.93 equity** (undervalued — contrarian value)
-- Louisville: 2.9% sim rate ÷ 0.2% public pick = **14.5 equity** (massive contrarian value)
-
-The optimizer blends ML probability with equity scores, weighted by round:
-- **R64/R32**: 70-79% ML + 21-30% equity (upsets are rare, stick mostly with ML)
-- **S16/E8**: 48-58% ML + 42-52% equity (equity starts driving contrarian picks)
-- **F4/Championship**: 37-40% ML + 60-63% equity (maximum differentiation in the rounds that matter most for pool scoring)
-
-## Anti-Chalk Rules
-
-Five hardcoded rules enforced regardless of ML output:
-
-1. At least one 1-seed must be eliminated before the Final Four
-2. At least one 10+ seed must reach the Sweet 16
-3. At least one 12-seed must beat a 5-seed (35% historical rate)
-4. The largest KenPom rank vs seed discrepancy is flagged as an upset candidate
-5. The #1 overall seed wins the championship less than 20% historically — don't over-index
+```
+data/
+├── historical/     11 files (2008–2026 training + 2026 tournament teams)
+├── 2026/           5 files (KenPom, Barttorvik, bracket, public picks, Vegas lines)
+├── reference/      6 files (coaches, seeds, teams, conferences, upsets)
+└── supplemental/   22 files (extra datasets)
+```
 
 ## Tech Stack
 
@@ -218,4 +194,4 @@ Five hardcoded rules enforced regardless of ML output:
 
 **Frontend**: React 18, Vite, TailwindCSS, Recharts, Framer Motion, Axios
 
-**Data**: KenPom, Barttorvik, ESPN, TeamRankings, Sports-Reference (all pre-downloaded CSVs)
+**Data**: KenPom, Barttorvik, BetMGM odds, TeamRankings, Sports-Reference

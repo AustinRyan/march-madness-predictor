@@ -341,6 +341,26 @@ def load_public_picks_2026() -> pd.DataFrame:
     return df
 
 
+def load_vegas_lines_2026() -> pd.DataFrame:
+    """Category B — Vegas opening lines for 2026 R64 games."""
+    path = CURR_DIR / "vegas_lines_2026.csv"
+    if not path.exists():
+        log.warning("Vegas lines not available: %s", path)
+        return pd.DataFrame()
+    df = pd.read_csv(path)
+    # Clean spread columns: strip + signs, convert to float
+    for col in ["spread_a", "spread_b"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace("+", "", regex=False),
+                                     errors="coerce")
+    for col in ["moneyline_a", "moneyline_b"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col].astype(str).str.replace("+", "", regex=False),
+                                     errors="coerce")
+    log.info("Vegas_Lines_2026: %d games loaded", len(df))
+    return df
+
+
 # --- Category C: Reference ---
 
 def load_coach_results() -> pd.DataFrame:
@@ -708,6 +728,7 @@ def build_current_teams(
     bracket: dict,
     kp26: pd.DataFrame,
     bt26: pd.DataFrame,
+    kb: pd.DataFrame,
     coach_results: pd.DataFrame,
     seed_results: pd.DataFrame,
     team_results: pd.DataFrame,
@@ -715,7 +736,11 @@ def build_current_teams(
     canonical: set[str],
     cache: dict[str, str],
 ) -> pd.DataFrame:
-    """Build one row per 2026 bracket team with all available stats."""
+    """Build one row per 2026 bracket team with all available stats.
+
+    Merges KenPom 2026 (public page), Barttorvik 2026, and KenPom_Barttorvik
+    2026 rows (full feature coverage including 3PT%, TOV%, experience, etc.).
+    """
 
     # Extract teams from bracket
     bracket_teams = []
@@ -794,6 +819,32 @@ def build_current_teams(
     bt_extra.rename(columns=bt_stat_map, inplace=True)
     bt_extra = bt_extra.drop_duplicates(subset=["team_name"])
     teams_df = teams_df.merge(bt_extra, on="team_name", how="left")
+
+    # --- Merge KenPom_Barttorvik 2026 rows (full feature coverage) ---
+    kb_2026 = kb[kb["season"] == 2026].copy()
+    if len(kb_2026) > 0:
+        kb_2026["team_name"] = kb_2026["team_name"].apply(
+            lambda x: resolve_name(x, canonical, cache))
+        # Select the detailed columns that aren't in kenpom_2026 or barttorvik_2026
+        kb_detail_cols = ["team_name", "3PT%", "3PT%D", "TOV%", "TOV%D",
+                          "OREB%", "DREB%", "OP OREB%", "OP DREB%",
+                          "EFG%", "EFG%D", "FTR", "FTRD",
+                          "2PT%", "2PT%D", "BLK%", "AST%",
+                          "EXP", "AVG HGT", "TALENT", "FT%",
+                          "ELITE SOS", "WAB", "3PTR", "3PTRD",
+                          "KADJ EM", "KADJ O", "KADJ D", "KADJ T", "BARTHAG",
+                          "ELO" if "ELO" in kb_2026.columns else None,
+                          "Q1 W" if "Q1 W" in kb_2026.columns else None]
+        kb_detail_cols = [c for c in kb_detail_cols if c is not None and c in kb_2026.columns]
+        # Prefix to avoid collision with existing columns
+        kb_sub = kb_2026[kb_detail_cols].copy()
+        rename_map = {c: f"KB_{c}" for c in kb_detail_cols if c != "team_name"}
+        kb_sub.rename(columns=rename_map, inplace=True)
+        kb_sub = kb_sub.drop_duplicates(subset=["team_name"])
+        teams_df = teams_df.merge(kb_sub, on="team_name", how="left")
+        matched = teams_df["KB_3PT%"].notna().sum() if "KB_3PT%" in teams_df.columns else 0
+        log.info("KenPom_Barttorvik 2026 matched: %d/%d teams (full feature coverage)",
+                 matched, len(teams_df))
 
     # --- Merge coach data from DEV March Madness (2025 season as proxy for 2026) ---
     dev_2025 = dev[dev["season"] == 2025][["team_name", "Current Coach", "Since"]].copy()
@@ -1031,7 +1082,7 @@ def run_pipeline() -> tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
     # ------------------------------------------------------------------
     log.info("--- Building 2026 current teams ---")
     current_teams_df = build_current_teams(
-        bracket, kp26, bt26, coach_results, seed_results,
+        bracket, kp26, bt26, kb, coach_results, seed_results,
         team_results, dev, canonical, cache
     )
 
@@ -1048,6 +1099,7 @@ def run_pipeline() -> tuple[pd.DataFrame, pd.DataFrame, dict, dict]:
         "heat_check_index": hc_idx,
         "public_picks_2026": picks26,
         "public_picks_historical": load_public_picks_historical(),
+        "vegas_lines_2026": load_vegas_lines_2026(),
         "tournament_locations": locations,
     }
 

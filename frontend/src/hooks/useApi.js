@@ -42,8 +42,7 @@ export function useUpsetAlerts() {
     setError(null);
     try {
       const response = await axios.get('/api/upset-alerts');
-      // API returns {total_games, high_alerts, alerts: [...]}
-      // Extract the array and build triggered_flags from boolean columns
+      // API returns {total_games, high_alerts, round_summary, alerts: [...]}
       const raw = response.data.alerts || response.data || [];
       const FLAG_KEYS = [
         'rank_within_15', 'tempo_mismatch_8', 'favorite_fading',
@@ -57,7 +56,12 @@ export function useUpsetAlerts() {
         seed_underdog: a.lower_seed,
         historical_rate: a.hist_upset_rate,
       }));
-      setAlerts(cleaned);
+      setAlerts({
+        items: cleaned,
+        roundSummary: response.data.round_summary || {},
+        totalGames: response.data.total_games || cleaned.length,
+        highAlerts: response.data.high_alerts || 0,
+      });
     } catch (err) {
       const message =
         err.response?.data?.detail ||
@@ -71,6 +75,38 @@ export function useUpsetAlerts() {
   }, []);
 
   return { alerts, loading, error, fetchAlerts };
+}
+
+export function useOverride() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const applyOverride = useCallback(async ({ round, team_a, team_b, new_winner, region, current_picks }) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.post('/api/override-pick', {
+        round,
+        team_a,
+        team_b,
+        new_winner,
+        region,
+        current_picks,
+      });
+      return response.data;
+    } catch (err) {
+      const message =
+        err.response?.data?.detail ||
+        err.message ||
+        'Override failed.';
+      setError(message);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { applyOverride, loading, error };
 }
 
 export function useModelBenchmark() {

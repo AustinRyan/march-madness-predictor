@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
 const FLAG_LABELS = {
@@ -62,8 +63,17 @@ function AlertCard({ alert, index }) {
       {/* Header row */}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          {isHighAlert && (
-            <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
+            {/* Round badge */}
+            <span className="font-mono text-xs px-2 py-0.5 rounded"
+              style={{
+                color: '#94a3b8',
+                backgroundColor: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+              {alert.round_name ?? `R${alert.round ?? 64}`}
+            </span>
+            {isHighAlert && (
               <motion.span
                 className="font-mono text-xs font-bold tracking-widest px-2 py-0.5 rounded"
                 style={{
@@ -76,8 +86,13 @@ function AlertCard({ alert, index }) {
               >
                 ⚠ HIGH ALERT
               </motion.span>
-            </div>
-          )}
+            )}
+            {alert.is_projected && (
+              <span className="font-mono text-xs text-slate-600" title="Based on projected matchup — actual opponent may differ">
+                PROJECTED
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-3">
             <span
               className="font-mono text-xs"
@@ -194,7 +209,13 @@ function AlertCard({ alert, index }) {
 }
 
 export default function UpsetAlerts({ alerts }) {
-  if (!alerts || alerts.length === 0) {
+  const [roundFilter, setRoundFilter] = useState('ALL');
+
+  // alerts can be {items, roundSummary} or raw array
+  const items = alerts?.items ?? alerts ?? [];
+  const roundSummary = alerts?.roundSummary ?? {};
+
+  if (!items || items.length === 0) {
     return (
       <section className="px-4 py-8 max-w-5xl mx-auto">
         <div className="flex items-center gap-4 mb-8">
@@ -213,18 +234,25 @@ export default function UpsetAlerts({ alerts }) {
     );
   }
 
-  const sorted = [...alerts].sort(
-    (a, b) => (b.upset_score ?? 0) - (a.upset_score ?? 0)
+  const filtered = roundFilter === 'ALL'
+    ? items
+    : items.filter(a => a.round === parseInt(roundFilter));
+
+  const sorted = [...filtered].sort(
+    (a, b) => (a.round ?? 64) - (b.round ?? 64) || (b.upset_score ?? 0) - (a.upset_score ?? 0)
   );
   const highCount = sorted.filter((a) => a.upset_score >= 3).length;
   const watchCount = sorted.filter(
     (a) => a.upset_score >= 2 && a.upset_score < 3
   ).length;
 
+  const roundTabs = ['ALL', '64', '32', '16', '8', '4'];
+  const roundLabels = { ALL: 'ALL', '64': 'R64', '32': 'R32', '16': 'S16', '8': 'E8', '4': 'F4' };
+
   return (
     <section className="px-4 py-8 max-w-5xl mx-auto">
       {/* Section header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-4">
         <div
           className="h-8 w-1 rounded-full"
           style={{ backgroundColor: '#ef4444' }}
@@ -240,9 +268,51 @@ export default function UpsetAlerts({ alerts }) {
             border: '1px solid rgba(239,68,68,0.25)',
           }}
         >
-          {sorted.length} ALERTS
+          {items.length} ALERTS
         </span>
       </div>
+
+      {/* Round filter tabs */}
+      <div className="flex gap-1 p-1 rounded-lg mb-4 flex-wrap" style={{ backgroundColor: '#151d38' }}>
+        {roundTabs.map(rd => {
+          const key = rd === 'ALL' ? null : `R${rd}`;
+          const summary = key ? roundSummary[key] : null;
+          const count = rd === 'ALL' ? items.length : items.filter(a => a.round === parseInt(rd)).length;
+          const highN = summary?.high ?? 0;
+          return (
+            <button key={rd} onClick={() => setRoundFilter(rd)}
+              className="font-mono text-xs px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5"
+              style={{
+                backgroundColor: roundFilter === rd ? 'rgba(239,68,68,0.12)' : 'transparent',
+                color: roundFilter === rd ? '#ef4444' : '#475569',
+                border: roundFilter === rd ? '1px solid rgba(239,68,68,0.3)' : '1px solid transparent',
+              }}
+            >
+              {roundLabels[rd]}
+              <span className="text-slate-600">({count})</span>
+              {highN > 0 && rd !== 'ALL' && (
+                <span style={{ color: '#ef4444', fontSize: 9 }}>{highN}!</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Per-round summary row */}
+      {Object.keys(roundSummary).length > 0 && roundFilter === 'ALL' && (
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {Object.entries(roundSummary).map(([rd, s]) => (
+            <div key={rd} className="font-mono text-xs px-3 py-1.5 rounded-lg"
+              style={{ backgroundColor: '#0f1629', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <span className="text-slate-500">{rd}:</span>{' '}
+              {s.high > 0 && <span style={{ color: '#ef4444' }}>{s.high} high</span>}
+              {s.high > 0 && s.watch > 0 && <span className="text-slate-600"> · </span>}
+              {s.watch > 0 && <span style={{ color: '#f5a623' }}>{s.watch} watch</span>}
+              {s.high === 0 && s.watch === 0 && <span className="text-slate-600">clear</span>}
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Summary pills */}
       <div className="flex gap-3 mb-8 flex-wrap">

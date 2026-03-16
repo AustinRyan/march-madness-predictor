@@ -258,22 +258,35 @@ def build_matchup_features_2026(
         _safe_val(team_a, "AdjT", "BT_AdjT") - _safe_val(team_b, "AdjT", "BT_AdjT")
     )
 
-    # For 2026, use NaN for missing features (tree models handle natively)
-    features["three_pt_clash_a"] = np.nan
-    features["three_pt_clash_b"] = np.nan
-    features["turnover_battle"] = np.nan
-    features["rebound_battle"] = np.nan
-    features["ft_disparity"] = np.nan
-    features["shot_quality_clash"] = np.nan
+    # For 2026: use KB_ columns from KenPom_Barttorvik 2026 when available
+    features["three_pt_clash_a"] = _safe_diff_nan(team_a, "KB_3PT%", team_b, "KB_3PT%D")
+    features["three_pt_clash_b"] = _safe_diff_nan(team_b, "KB_3PT%", team_a, "KB_3PT%D")
+
+    features["turnover_battle"] = (
+        (_safe_val_nan(team_a, "KB_TOV%D") - _safe_val_nan(team_a, "KB_TOV%")) -
+        (_safe_val_nan(team_b, "KB_TOV%D") - _safe_val_nan(team_b, "KB_TOV%"))
+    ) if not (np.isnan(_safe_val_nan(team_a, "KB_TOV%")) or np.isnan(_safe_val_nan(team_b, "KB_TOV%"))) else np.nan
+
+    features["rebound_battle"] = (
+        (_safe_val_nan(team_a, "KB_OREB%") - _safe_val_nan(team_b, "KB_OP OREB%")) -
+        (_safe_val_nan(team_b, "KB_OREB%") - _safe_val_nan(team_a, "KB_OP OREB%"))
+    ) if not (np.isnan(_safe_val_nan(team_a, "KB_OREB%")) or np.isnan(_safe_val_nan(team_b, "KB_OREB%"))) else np.nan
+
+    features["ft_disparity"] = (
+        (_safe_val_nan(team_a, "KB_FTR") - _safe_val_nan(team_b, "KB_FTRD")) -
+        (_safe_val_nan(team_b, "KB_FTR") - _safe_val_nan(team_a, "KB_FTRD"))
+    ) if not (np.isnan(_safe_val_nan(team_a, "KB_FTR")) or np.isnan(_safe_val_nan(team_b, "KB_FTR"))) else np.nan
+
+    features["shot_quality_clash"] = np.nan  # No Shooting Splits for 2026
 
     # ----- 3. Variance / experience -----
-    features["experience_diff"] = np.nan  # Not in 2026 public data
-    features["height_diff"] = np.nan
-    features["talent_diff"] = np.nan
+    features["experience_diff"] = _safe_diff_nan(team_a, "KB_EXP", team_b, "KB_EXP")
+    features["height_diff"] = _safe_diff_nan(team_a, "KB_AVG HGT", team_b, "KB_AVG HGT")
+    features["talent_diff"] = _safe_diff_nan(team_a, "KB_TALENT", team_b, "KB_TALENT")
 
     # ----- 4. Luck / momentum -----
     features["luck_diff"] = _safe_diff_nan(team_a, "Luck", team_b, "Luck")
-    features["luck_top25_diff"] = np.nan
+    features["luck_top25_diff"] = np.nan  # Not in 2026 data
     features["preseason_momentum_diff"] = np.nan
     features["preseason_rank_delta_diff"] = np.nan
 

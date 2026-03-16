@@ -229,15 +229,20 @@ def get_high_equity_picks(
 # =========================================================================
 
 def _get_pick_pct(row: pd.Series, col: str) -> float:
-    """Get public pick percentage as a proportion (0-1)."""
+    """Get public pick percentage as a proportion (0-1).
+
+    The CSV stores values like "99.00%" (stripped to 99.0) and "0.727%" (stripped to 0.727).
+    ALL values are percentages that need dividing by 100 to get proportions.
+    """
     val = row.get(col, 0.0)
     if pd.isna(val):
         return 0.01
     val = float(val)
-    # If > 1, assume it's a percentage (e.g. 85.5), convert to proportion
-    if val > 1.0:
-        val = val / 100.0
-    return max(val, 0.001)
+    # ALL values from the CSV are percentages (0-100 scale), convert to proportion
+    # Values > 1.0 are clearly percentages (e.g., 99.0 → 0.99)
+    # Values <= 1.0 are also percentages (e.g., 0.727 → 0.00727 = 0.727%)
+    val = val / 100.0
+    return max(val, 0.00001)
 
 
 def _normalize_equity(raw_equity: float) -> float:
@@ -275,32 +280,22 @@ def _seed_based_win_probs(seed: int) -> dict[int, float]:
 
 
 def _seed_fallback_picks(seed: int) -> dict:
-    """Public pick percentages reflecting real ESPN bracket challenge behavior.
+    """Fallback public pick percentages by seed for teams not in the picks file.
 
-    The public is significantly more chalk-heavy than the ML model.
-    These priors are calibrated to actual observed ESPN bracket challenge
-    pick distributions — ~88% of public brackets pick a 1-seed champion.
+    Derived from BetMGM championship odds averages per seed group.
     """
-    # Calibrated to real ESPN bracket challenge behavior
-    priors = {
-        1:  {"R64": 0.990, "R32": 0.920, "S16": 0.780, "E8": 0.650, "F4": 0.550, "FINALS": 0.220},
-        2:  {"R64": 0.950, "R32": 0.820, "S16": 0.600, "E8": 0.450, "F4": 0.300, "FINALS": 0.040},
-        3:  {"R64": 0.880, "R32": 0.720, "S16": 0.480, "E8": 0.300, "F4": 0.180, "FINALS": 0.015},
-        4:  {"R64": 0.820, "R32": 0.620, "S16": 0.350, "E8": 0.200, "F4": 0.100, "FINALS": 0.008},
-        5:  {"R64": 0.720, "R32": 0.480, "S16": 0.220, "E8": 0.100, "F4": 0.050, "FINALS": 0.004},
-        6:  {"R64": 0.650, "R32": 0.380, "S16": 0.160, "E8": 0.060, "F4": 0.025, "FINALS": 0.002},
-        7:  {"R64": 0.580, "R32": 0.280, "S16": 0.100, "E8": 0.035, "F4": 0.012, "FINALS": 0.001},
-        8:  {"R64": 0.510, "R32": 0.180, "S16": 0.060, "E8": 0.018, "F4": 0.006, "FINALS": 0.0005},
-        9:  {"R64": 0.490, "R32": 0.160, "S16": 0.050, "E8": 0.015, "F4": 0.005, "FINALS": 0.0005},
-        10: {"R64": 0.420, "R32": 0.120, "S16": 0.035, "E8": 0.010, "F4": 0.003, "FINALS": 0.0003},
-        11: {"R64": 0.350, "R32": 0.100, "S16": 0.030, "E8": 0.008, "F4": 0.003, "FINALS": 0.0003},
-        12: {"R64": 0.280, "R32": 0.080, "S16": 0.020, "E8": 0.005, "F4": 0.002, "FINALS": 0.0002},
-        13: {"R64": 0.180, "R32": 0.040, "S16": 0.008, "E8": 0.002, "F4": 0.001, "FINALS": 0.0001},
-        14: {"R64": 0.120, "R32": 0.020, "S16": 0.004, "E8": 0.001, "F4": 0.0004, "FINALS": 0.00005},
-        15: {"R64": 0.050, "R32": 0.010, "S16": 0.002, "E8": 0.0005, "F4": 0.0002, "FINALS": 0.00003},
-        16: {"R64": 0.010, "R32": 0.003, "S16": 0.001, "E8": 0.0002, "F4": 0.0001, "FINALS": 0.00001},
+    # Average implied championship probability by seed from BetMGM 2026
+    champ_by_seed = {
+        1: 0.118, 2: 0.038, 3: 0.022, 4: 0.014, 5: 0.010,
+        6: 0.008, 7: 0.006, 8: 0.004, 9: 0.004, 10: 0.004,
+        11: 0.004, 12: 0.004, 13: 0.004, 14: 0.004, 15: 0.004, 16: 0.004,
     }
-    return priors.get(seed, priors[8])
+    c = champ_by_seed.get(seed, 0.004)
+    return {
+        "R64": min(c * 80, 0.99), "R32": min(c * 35, 0.95),
+        "S16": min(c * 18, 0.85), "E8": min(c * 10, 0.70),
+        "F4": min(c * 5.5, 0.60), "FINALS": c,
+    }
 
 
 # =========================================================================

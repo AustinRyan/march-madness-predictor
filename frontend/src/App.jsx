@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { useSimulation, useUpsetAlerts } from './hooks/useApi';
+import { useSimulation, useUpsetAlerts, useOverride } from './hooks/useApi';
 import Hero from './components/Hero';
 import SimLoading from './components/SimLoading';
 import BracketView from './components/BracketView';
 import InteractiveBracket from './components/InteractiveBracket';
+import OverrideModal from './components/OverrideModal';
+import OverrideHistory from './components/OverrideHistory';
 import UpsetAlerts from './components/UpsetAlerts';
 import FinalFour from './components/FinalFour';
 import EquityDashboard from './components/EquityDashboard';
 import BenchmarkPanel from './components/BenchmarkPanel';
+import HelpPanel from './components/HelpPanel';
 
 function SectionDivider() {
   return (
@@ -55,7 +58,7 @@ function ErrorBanner({ message, onDismiss }) {
   );
 }
 
-function NavBar({ hasResults, onScrollTo }) {
+function NavBar({ hasResults, onScrollTo, onOpenHelp }) {
   const sections = hasResults
     ? [
         { id: 'bracket', label: 'Bracket' },
@@ -94,11 +97,15 @@ function NavBar({ hasResults, onScrollTo }) {
           ))}
         </div>
       )}
-      <div
-        className="font-mono text-xs text-slate-600"
-        style={{ minWidth: 56, textAlign: 'right' }}
-      >
-        2026
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onOpenHelp}
+          className="font-mono text-xs tracking-wider text-slate-400 hover:text-white transition-colors px-2 py-1 rounded"
+          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          ? Help
+        </button>
+        <span className="font-mono text-xs text-slate-600">2026</span>
       </div>
     </nav>
   );
@@ -107,8 +114,13 @@ function NavBar({ hasResults, onScrollTo }) {
 export default function App() {
   const { data: simData, loading, error, runSimulation } = useSimulation();
   const { alerts, fetchAlerts } = useUpsetAlerts();
+  const { applyOverride, loading: overrideLoading } = useOverride();
   const [dismissed, setDismissed] = useState(false);
   const resultsRef = useRef(null);
+  const [overridePicks, setOverridePicks] = useState(null);
+  const [overrideHistory, setOverrideHistory] = useState([]);
+  const [pendingOverride, setPendingOverride] = useState(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   // When simulation completes, fetch upset alerts and scroll to results
   useEffect(() => {
@@ -132,6 +144,50 @@ export default function App() {
   const scrollTo = (id) => {
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Override: user clicks a losing team in the bracket
+  const handleOverridePick = (gameWithClickedTeam) => {
+    setPendingOverride(gameWithClickedTeam);
+  };
+
+  const handleConfirmOverride = async (game) => {
+    const currentPicks = overridePicks || equityBracket?.picks || [];
+    const result = await applyOverride({
+      round: game.round,
+      team_a: game.team_a,
+      team_b: game.team_b,
+      new_winner: game.clickedTeam,
+      region: game.region,
+      current_picks: currentPicks,
+    });
+    if (result) {
+      setOverridePicks(result.picks);
+      setOverrideHistory(prev => [...prev, {
+        round: game.round,
+        region: game.region,
+        team_a: game.team_a,
+        team_b: game.team_b,
+        original_winner: game.winner,
+        new_winner: game.clickedTeam,
+        cascade_count: result.total_changes - 1,
+        cascaded_changes: result.changes?.filter(c => c.type === 'cascade') || [],
+      }]);
+    }
+    setPendingOverride(null);
+  };
+
+  const handleUndoOverride = (index) => {
+    // Remove this override and all subsequent ones, then replay from original
+    setOverrideHistory(prev => prev.filter((_, i) => i !== index));
+    // Reset to original picks — ideally would replay remaining overrides
+    // but for simplicity, reset to model picks
+    setOverridePicks(null);
+  };
+
+  const handleResetAll = () => {
+    setOverridePicks(null);
+    setOverrideHistory([]);
   };
 
   // Extract data from simulation response
@@ -169,12 +225,25 @@ export default function App() {
       className="min-h-screen"
       style={{ backgroundColor: '#0a0e1a' }}
     >
-      <NavBar hasResults={hasResults} onScrollTo={scrollTo} />
+      <NavBar hasResults={hasResults} onScrollTo={scrollTo} onOpenHelp={() => setHelpOpen(true)} />
+      <HelpPanel isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* Error toast */}
       <AnimatePresence>
         {error && !dismissed && (
           <ErrorBanner message={error} onDismiss={() => setDismissed(true)} />
+        )}
+      </AnimatePresence>
+
+      {/* Override confirmation modal */}
+      <AnimatePresence>
+        {pendingOverride && (
+          <OverrideModal
+            game={pendingOverride}
+            onConfirm={handleConfirmOverride}
+            onCancel={() => setPendingOverride(null)}
+            alerts={alerts}
+          />
         )}
       </AnimatePresence>
 
@@ -253,12 +322,22 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
             >
+              <OverrideHistory
+                overrides={overrideHistory}
+                onUndoOverride={handleUndoOverride}
+                onResetAll={handleResetAll}
+              />
               <InteractiveBracket
                 safePicks={safeBracket?.picks ?? []}
                 equityPicks={equityBracket?.picks ?? []}
-                champion={equityBracket?.champion ?? safeBracket?.champion}
+                overridePicks={overridePicks}
+                champion={overridePicks
+                  ? overridePicks.find(p => p.round === 2)?.winner
+                  : equityBracket?.champion ?? safeBracket?.champion}
                 diffs={comparison?.differences ?? []}
                 allTeams={allTeams}
+                onOverridePick={handleOverridePick}
+                alerts={inlineAlerts}
               />
               <div className="px-4 max-w-5xl mx-auto mt-4 mb-2">
                 <details className="group">

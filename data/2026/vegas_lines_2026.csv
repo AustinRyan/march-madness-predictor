@@ -1,0 +1,33 @@
+team_a,team_b,seed_a,seed_b,spread_a,spread_b,moneyline_a,moneyline_b,total,region,round
+Duke,Siena,1,16,-27.5,+27.5,-20000,+3500,136.5,East,64
+Ohio State,TCU,8,9,-2.5,+2.5,-198,+164,147.5,East,64
+St. John's,Northern Iowa,5,12,-9.5,+9.5,-425,+330,130.5,East,64
+Kansas,Cal Baptist,4,13,-13.5,+13.5,-1100,+700,135.5,East,64
+Louisville,South Florida,6,11,-6.5,+6.5,-285,+230,163.5,East,64
+Michigan St.,North Dakota St.,3,14,-15.5,+15.5,-1650,+950,143.5,East,64
+UCLA,UCF,7,10,-6.5,+6.5,-245,+200,154.5,East,64
+Connecticut,Furman,2,15,-19.5,+19.5,-8000,+2200,136.5,East,64
+Florida,Prairie View,1,16,-28.5,+28.5,-25000,+4000,140.5,South,64
+Clemson,Iowa,8,9,+1.5,-1.5,+120,-142,130.5,South,64
+Vanderbilt,McNeese St.,5,12,-10.5,+10.5,-625,+455,150.5,South,64
+Nebraska,Troy,4,13,-13.5,+13.5,-1200,+750,135.5,South,64
+North Carolina,VCU,6,11,-2.5,+2.5,-142,+120,155.5,South,64
+Illinois,Penn,3,14,-22.5,+22.5,-10000,+3000,149.5,South,64
+St. Mary's,Texas A&M,7,10,-2.5,+2.5,-142,+120,148.5,South,64
+Houston,Idaho,2,15,-21.5,+21.5,-10000,+3000,134.5,South,64
+Arizona,LIU,1,16,-29.5,+29.5,-100000,+5000,151.5,West,64
+Villanova,Utah St.,8,9,+2.5,-2.5,+114,-135,147.5,West,64
+Wisconsin,High Point,5,12,-11.5,+11.5,-850,+575,165.5,West,64
+Arkansas,Hawaii,4,13,-15.5,+15.5,-1650,+950,161.5,West,64
+BYU,Texas,6,11,-3.5,+3.5,-175,+145,150.5,West,64
+Gonzaga,Kennesaw St.,3,14,-19.5,+19.5,-8000,+2200,158.5,West,64
+Miami FL,Missouri,7,10,-2.5,+2.5,-142,+120,150.5,West,64
+Purdue,Queens,2,15,-22.5,+22.5,-8000,+2200,164.5,West,64
+Michigan,UMBC,1,16,-27.5,+27.5,-20000,+3500,142.5,Midwest,64
+Georgia,Saint Louis,8,9,-1.5,+1.5,-148,+124,170.5,Midwest,64
+Texas Tech,Akron,5,12,-8.5,+8.5,-410,+320,155.5,Midwest,64
+Alabama,Hofstra,4,13,-12.5,+12.5,-700,+500,161.5,Midwest,64
+Tennessee,Miami OH,6,11,-10.5,+10.5,-550,+400,148.5,Midwest,64
+Virginia,Wright St.,3,14,-17.5,+17.5,-3200,+1400,144.5,Midwest,64
+Kentucky,Santa Clara,7,10,-2.5,+2.5,-148,+124,161.5,Midwest,64
+Iowa St.,Tennessee St.,2,15,-23.5,+23.5,-6500,+2000,148.5,Midwest,64

@@ -103,16 +103,12 @@ def _get_state():
     picks = refs["public_picks_2026"]
     equity_df = compute_all_equity(curr, picks, win_probs_by_team=win_probs)
 
-    log.info("Computing upsets...")
-    from upset_detector import detect_upsets
-    alerts = detect_upsets(
-        curr, bracket, refs["coach_results"],
-        refs["seed_results"], refs["upset_seed_info"],
-    )
+    # Upsets are computed on-demand in /api/upset-alerts with projected picks
+    alerts = None
 
     # Sanitize DataFrames: replace NaN/Inf with None for JSON safety
     import pandas as pd
-    for df in [curr, equity_df, alerts, sim["team_results"]]:
+    for df in [curr, equity_df, sim["team_results"]]:
         for col in df.select_dtypes(include=["float64", "float32"]).columns:
             df[col] = df[col].where(df[col].notna(), None)
 
@@ -139,6 +135,16 @@ class SimulationRequest(BaseModel):
     year: int = 2026
 
 
+class OverrideRequest(BaseModel):
+    """Request to override a single pick and recalculate downstream."""
+    round: int                # Round of the game to override (64, 32, 16, 8, 4, 2)
+    team_a: str               # Team A in the game
+    team_b: str               # Team B in the game
+    new_winner: str           # The team that should win (must be team_a or team_b)
+    region: str               # Region of the game
+    current_picks: list       # Full current bracket state as list of pick dicts
+
+
 # ── Endpoints ──────────────────────────────────────────────────────
 
 @app.post("/api/run-simulation")
@@ -160,6 +166,22 @@ def run_simulation(req: SimulationRequest):
 
     comparison = compare_brackets(safe, equity)
     sim_df = state["sim"]["team_results"]
+
+    # Enrich picks with Vegas spreads
+    vegas = state["refs"].get("vegas_lines_2026")
+    vegas_map = {}
+    if vegas is not None and len(vegas) > 0:
+        for _, vr in vegas.iterrows():
+            vegas_map[(str(vr.get("team_a", "")), str(vr.get("team_b", "")))] = {
+                "spread_a": vr.get("spread_a"), "spread_b": vr.get("spread_b"),
+            }
+    for bracket_result in [safe, equity]:
+        for _, pick in bracket_result["picks"].iterrows():
+            vdata = vegas_map.get((pick["team_a"], pick["team_b"])) or \
+                    vegas_map.get((pick["team_b"], pick["team_a"]))
+            if vdata:
+                bracket_result["picks"].loc[pick.name, "vegas_spread_a"] = vdata["spread_a"]
+                bracket_result["picks"].loc[pick.name, "vegas_spread_b"] = vdata["spread_b"]
 
     # Sanitize optimizer picks (may contain NaN from ML features)
     def _clean_df_records(df):
@@ -209,12 +231,53 @@ def get_bracket_data():
 
 @app.get("/api/upset-alerts")
 def get_upset_alerts():
-    """Return upset detection results for R64 games."""
+    """Return upset detection results for ALL rounds.
+
+    Uses projected picks from the equity bracket for R32+ matchups.
+    """
     state = _get_state()
-    alerts = state["alerts"]
+
+    # Re-run upset detection with projected picks for all rounds
+    from upset_detector import detect_upsets
+    from optimizer import optimize_bracket
+    from pool_equity import compute_all_equity, sim_results_to_win_probs
+
+    curr = state["curr"]
+    refs = state["refs"]
+    bracket = state["bracket"]
+
+    # Get equity bracket picks for projected matchups
+    equity_df = state["equity_df"]
+    eq_bracket = optimize_bracket(
+        bracket, curr, state["ml_predict"], equity_df,
+        refs["seed_results"], risk=0.5)
+    projected_picks = eq_bracket["picks"].to_dict(orient="records")
+
+    vegas_lines = refs.get("vegas_lines_2026")
+
+    alerts = detect_upsets(
+        curr, bracket,
+        refs["coach_results"],
+        refs["seed_results"],
+        refs["upset_seed_info"],
+        projected_picks=projected_picks,
+        vegas_lines=vegas_lines,
+    )
+
+    # Build per-round summary
+    round_summary = {}
+    for rd in [64, 32, 16, 8, 4]:
+        rd_df = alerts[alerts["round"] == rd]
+        round_summary[f"R{rd}"] = {
+            "total": len(rd_df),
+            "high": int(rd_df["high_alert"].sum()),
+            "watch": int(((rd_df["upset_score"] >= 2) & (~rd_df["high_alert"])).sum()),
+        }
+
     return nan_safe_response({
         "total_games": len(alerts),
         "high_alerts": int(alerts["high_alert"].sum()),
+        "round_summary": round_summary,
         "alerts": _sanitize(alerts.to_dict(orient="records")),
     })
 
@@ -284,4 +347,242 @@ def get_equity_data():
     eq = state["equity_df"]
     return nan_safe_response({
         "equity_scores": _sanitize(eq.to_dict(orient="records")),
+    })
+
+
+@app.get("/api/vegas-lines")
+def get_vegas_lines():
+    """Return Vegas opening lines for R64 games."""
+    state = _get_state()
+    vegas = state["refs"].get("vegas_lines_2026")
+    if vegas is None or len(vegas) == 0:
+        return {"games": [], "available": False}
+    return nan_safe_response({
+        "games": _sanitize(vegas.to_dict(orient="records")),
+        "available": True,
+    })
+
+
+@app.post("/api/override-pick")
+def override_pick(req: OverrideRequest):
+    """Override a single pick and recalculate all downstream games.
+
+    Takes the current bracket state, applies the override, then re-runs
+    downstream matchups using ML win probabilities. Does NOT re-run the
+    full 50k simulation — uses cached pairwise probabilities.
+    """
+    state = _get_state()
+    from features import build_matchup_features_2026
+    from model import predict_matchup
+
+    curr = state["curr"]
+    teams_lookup = curr.set_index("team_name")
+    models = state["models"]
+    seed_results = state["refs"]["seed_results"]
+
+    # Build pairwise probability cache (or reuse from state)
+    if "prob_cache" not in state:
+        cache = {}
+        all_names = list(teams_lookup.index)
+        for i, a in enumerate(all_names):
+            for b in all_names[i + 1:]:
+                feats = build_matchup_features_2026(
+                    teams_lookup.loc[a], teams_lookup.loc[b], 64, seed_results)
+                prob = predict_matchup(models, feats.values)
+                cache[(a, b)] = prob
+                cache[(b, a)] = 1.0 - prob
+        state["prob_cache"] = cache
+    prob_cache = state["prob_cache"]
+
+    # Reconstruct picks as a list of mutable dicts
+    picks = [dict(p) for p in req.current_picks]
+
+    # Find the overridden game and apply
+    override_applied = False
+    changed_picks = []
+
+    for p in picks:
+        if (p["round"] == req.round and
+            p["team_a"] == req.team_a and p["team_b"] == req.team_b):
+            old_winner = p["winner"]
+            p["winner"] = req.new_winner
+            p["winner_seed"] = p["seed_a"] if req.new_winner == p["team_a"] else p["seed_b"]
+            p["is_upset"] = (p["winner_seed"] > min(p["seed_a"], p["seed_b"]))
+            p["is_override"] = True
+            override_applied = True
+            if old_winner != req.new_winner:
+                changed_picks.append({
+                    "round": req.round,
+                    "region": req.region,
+                    "old_winner": old_winner,
+                    "new_winner": req.new_winner,
+                    "type": "override",
+                })
+            break
+
+    if not override_applied:
+        raise HTTPException(status_code=400,
+                            detail=f"Game not found: R{req.round} {req.team_a} vs {req.team_b}")
+
+    # Recalculate downstream rounds
+    # Round order: 64 → 32 → 16 → 8 → 4 → 2
+    downstream_rounds = [r for r in [64, 32, 16, 8, 4, 2] if r < req.round]
+
+    # Build a lookup of picks by (round, region, team_a, team_b)
+    def get_round_picks(rd):
+        return [p for p in picks if p["round"] == rd]
+
+    def get_seed(team_name):
+        if team_name in teams_lookup.index:
+            return int(teams_lookup.loc[team_name].get("seed", 8))
+        return 8
+
+    for rd in downstream_rounds:
+        rd_picks = get_round_picks(rd)
+        # For each game in this round, check if either team was affected
+        # by the override (i.e., a team that was supposed to be here is
+        # now replaced by the override winner)
+        prev_rd = {64: None, 32: 64, 16: 32, 8: 16, 4: 8, 2: 4}[rd]
+        if prev_rd is None:
+            continue
+
+        # Get winners from the previous round to determine who plays in this round
+        prev_winners = {}
+        for p in get_round_picks(prev_rd):
+            # Map: (region, game_index_in_round) -> winner
+            key = (p.get("region", ""), p.get("team_a", ""), p.get("team_b", ""))
+            prev_winners[key] = p["winner"]
+
+        # Rebuild this round's matchups from previous round winners
+        prev_picks = get_round_picks(prev_rd)
+
+        if rd in [32, 16, 8]:
+            # Region rounds: pair consecutive previous-round winners
+            region_games = {}
+            for p in prev_picks:
+                region = p.get("region", "")
+                if region not in region_games:
+                    region_games[region] = []
+                region_games[region].append(p["winner"])
+
+            new_rd_picks = []
+            for p in rd_picks:
+                region = p.get("region", "")
+                winners = region_games.get(region, [])
+
+                # Find which pair of previous winners feeds this game
+                # The bracket structure pairs winners sequentially
+                game_idx = rd_picks.index(p)
+                region_rd_picks = [x for x in rd_picks if x.get("region") == region]
+                local_idx = region_rd_picks.index(p)
+
+                team_a_new = winners[local_idx * 2] if local_idx * 2 < len(winners) else p["team_a"]
+                team_b_new = winners[local_idx * 2 + 1] if local_idx * 2 + 1 < len(winners) else p["team_b"]
+
+                if team_a_new != p["team_a"] or team_b_new != p["team_b"]:
+                    # Matchup changed — recalculate
+                    prob = prob_cache.get((team_a_new, team_b_new), 0.5)
+                    new_winner = team_a_new if prob >= 0.5 else team_b_new
+                    seed_a = get_seed(team_a_new)
+                    seed_b = get_seed(team_b_new)
+                    old_winner = p["winner"]
+
+                    p["team_a"] = team_a_new
+                    p["team_b"] = team_b_new
+                    p["seed_a"] = seed_a
+                    p["seed_b"] = seed_b
+                    p["ml_prob_a"] = prob
+                    p["winner"] = new_winner
+                    p["winner_seed"] = seed_a if new_winner == team_a_new else seed_b
+                    p["is_upset"] = (p["winner_seed"] > min(seed_a, seed_b))
+                    p["is_recalculated"] = True
+
+                    if old_winner != new_winner:
+                        changed_picks.append({
+                            "round": rd,
+                            "region": region,
+                            "old_winner": old_winner,
+                            "new_winner": new_winner,
+                            "type": "cascade",
+                        })
+
+        elif rd == 4:
+            # Final Four: East winner vs South winner, West winner vs Midwest winner
+            e8_picks = get_round_picks(8)
+            region_winners = {}
+            for p in e8_picks:
+                region_winners[p.get("region", "")] = p["winner"]
+
+            ff_matchups = [
+                (region_winners.get("East", ""), region_winners.get("South", "")),
+                (region_winners.get("West", ""), region_winners.get("Midwest", "")),
+            ]
+
+            for i, p in enumerate(rd_picks):
+                if i < len(ff_matchups):
+                    team_a_new, team_b_new = ff_matchups[i]
+                    if team_a_new and team_b_new and (team_a_new != p["team_a"] or team_b_new != p["team_b"]):
+                        prob = prob_cache.get((team_a_new, team_b_new), 0.5)
+                        new_winner = team_a_new if prob >= 0.5 else team_b_new
+                        old_winner = p["winner"]
+                        p["team_a"] = team_a_new
+                        p["team_b"] = team_b_new
+                        p["seed_a"] = get_seed(team_a_new)
+                        p["seed_b"] = get_seed(team_b_new)
+                        p["ml_prob_a"] = prob
+                        p["winner"] = new_winner
+                        p["winner_seed"] = get_seed(new_winner)
+                        p["is_upset"] = False
+                        p["is_recalculated"] = True
+
+                        if old_winner != new_winner:
+                            changed_picks.append({
+                                "round": 4, "region": "Final Four",
+                                "old_winner": old_winner, "new_winner": new_winner,
+                                "type": "cascade",
+                            })
+
+        elif rd == 2:
+            # Championship: winners of the two F4 games
+            f4_picks = get_round_picks(4)
+            if len(f4_picks) >= 2:
+                team_a_new = f4_picks[0]["winner"]
+                team_b_new = f4_picks[1]["winner"]
+                p = rd_picks[0] if rd_picks else None
+                if p and (team_a_new != p["team_a"] or team_b_new != p["team_b"]):
+                    prob = prob_cache.get((team_a_new, team_b_new), 0.5)
+                    new_winner = team_a_new if prob >= 0.5 else team_b_new
+                    old_winner = p["winner"]
+                    p["team_a"] = team_a_new
+                    p["team_b"] = team_b_new
+                    p["seed_a"] = get_seed(team_a_new)
+                    p["seed_b"] = get_seed(team_b_new)
+                    p["ml_prob_a"] = prob
+                    p["winner"] = new_winner
+                    p["winner_seed"] = get_seed(new_winner)
+                    p["is_upset"] = False
+                    p["is_recalculated"] = True
+
+                    if old_winner != new_winner:
+                        changed_picks.append({
+                            "round": 2, "region": "Championship",
+                            "old_winner": old_winner, "new_winner": new_winner,
+                            "type": "cascade",
+                        })
+
+    # Determine new champion and Final Four
+    champ_game = next((p for p in picks if p["round"] == 2), None)
+    champion = champ_game["winner"] if champ_game else None
+
+    e8_games = [p for p in picks if p["round"] == 8]
+    final_four = {}
+    for p in e8_games:
+        final_four[p["region"]] = p["winner"]
+
+    return nan_safe_response({
+        "picks": _sanitize(picks),
+        "champion": champion,
+        "final_four": final_four,
+        "changes": changed_picks,
+        "total_changes": len(changed_picks),
     })

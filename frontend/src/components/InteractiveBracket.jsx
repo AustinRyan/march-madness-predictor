@@ -53,31 +53,44 @@ function truncate(s, max = 11) {
 
 // ── Team Slot ─────────────────────────────────────────────────────
 
-function Slot({ x, y, seed, team, isWinner, isUpset, isDiff, isGlow, prob, delay, onClick }) {
-  const bg = isWinner
+function Slot({ x, y, seed, team, isWinner, isUpset, isDiff, isGlow, isOverride, prob, vegasSpread, delay, onClick, onOverrideClick }) {
+  const bg = isOverride && isWinner
+    ? 'rgba(245,166,35,0.18)'
+    : isWinner
     ? isUpset ? 'rgba(245,166,35,0.12)' : 'rgba(16,185,129,0.06)'
     : 'rgba(255,255,255,0.02)';
-  const border = isDiff
+  const border = isOverride && isWinner
+    ? 'rgba(245,166,35,0.6)'
+    : isDiff
     ? COLORS.diff
     : isUpset && isWinner ? 'rgba(245,166,35,0.35)'
     : isWinner ? 'rgba(16,185,129,0.2)'
     : 'rgba(255,255,255,0.04)';
   const textColor = isWinner ? '#fff' : '#64748b';
   const seedColor = isWinner
-    ? isUpset ? COLORS.upset : COLORS.green
+    ? isOverride ? COLORS.gold : isUpset ? COLORS.upset : COLORS.green
     : '#334155';
+
+  const handleClick = () => {
+    if (!isWinner && onOverrideClick) {
+      // Clicking the LOSING team triggers override
+      onOverrideClick(team);
+    } else if (onClick) {
+      onClick(team);
+    }
+  };
 
   return (
     <motion.g
       initial={{ opacity: 0 }}
       animate={{ opacity: isGlow === false ? 0.2 : 1 }}
       transition={{ delay, duration: 0.25 }}
-      style={{ cursor: 'pointer' }}
-      onClick={() => onClick?.(team)}
+      style={{ cursor: !isWinner && onOverrideClick ? 'cell' : 'pointer' }}
+      onClick={handleClick}
     >
       <rect
         x={x} y={y} width={SLOT_W} height={SLOT_H} rx={3}
-        fill={bg} stroke={border} strokeWidth={isDiff ? 1.5 : 0.5}
+        fill={bg} stroke={border} strokeWidth={isOverride && isWinner ? 1.5 : isDiff ? 1.5 : 0.5}
       />
       {seed != null && (
         <text x={x + 4} y={y + SLOT_H / 2 + 1} dominantBaseline="middle"
@@ -86,17 +99,23 @@ function Slot({ x, y, seed, team, isWinner, isUpset, isDiff, isGlow, prob, delay
           {seed}
         </text>
       )}
-      <text x={x + 20} y={y + SLOT_H / 2 + 1} dominantBaseline="middle"
+      {/* Override icon for manually picked winners */}
+      {isOverride && isWinner && (
+        <text x={x + 14} y={y + SLOT_H / 2 + 1} dominantBaseline="middle"
+          fontSize={7}>✏️</text>
+      )}
+      <text x={x + (isOverride && isWinner ? 24 : 20)} y={y + SLOT_H / 2 + 1} dominantBaseline="middle"
         fill={textColor} fontSize={9} fontFamily="monospace"
         fontWeight={isWinner ? '700' : '400'}
       >
-        {truncate(team)}
+        {truncate(team, isOverride && isWinner ? 9 : 11)}
       </text>
       {isWinner && prob != null && (
         <text x={x + SLOT_W - 4} y={y + SLOT_H / 2 + 1} dominantBaseline="middle"
           textAnchor="end" fill="#475569" fontSize={7} fontFamily="monospace"
         >
           {(prob * 100).toFixed(0)}%
+          {vegasSpread != null ? ` (${vegasSpread > 0 ? '+' : ''}${vegasSpread.toFixed(1)})` : ''}
         </text>
       )}
     </motion.g>
@@ -105,7 +124,7 @@ function Slot({ x, y, seed, team, isWinner, isUpset, isDiff, isGlow, prob, delay
 
 // ── Region bracket (one quadrant) ─────────────────────────────────
 
-function RegionSVG({ tree, ox, oy, side, diffs, highlightTeam, onTeamClick, baseDelay }) {
+function RegionSVG({ tree, ox, oy, side, diffs, highlightTeam, onTeamClick, onOverrideClick, alertLookup, baseDelay }) {
   const rounds = [tree.r64, tree.r32, tree.s16, tree.e8];
   const gamesPerRound = [8, 4, 2, 1];
 
@@ -165,20 +184,31 @@ function RegionSVG({ tree, ox, oy, side, diffs, highlightTeam, onTeamClick, base
         ? (game.team_a === highlightTeam || game.team_b === highlightTeam || game.winner === highlightTeam)
         : null;
 
+      const handleOverride = (clickedTeam) => {
+        if (onOverrideClick) {
+          onOverrideClick({ ...game, clickedTeam });
+        }
+      };
+
       elements.push(
         <Slot key={`${ri}-${gi}-a`}
           x={x} y={y} seed={game.seed_a} team={game.team_a}
           isWinner={winA} isUpset={game.is_upset && winA} isDiff={diff && winA}
-          isGlow={hlTeamGames} prob={winA ? game.ml_prob_a : null}
-          delay={delay} onClick={onTeamClick}
+          isOverride={game.is_override && winA} isGlow={hlTeamGames}
+          prob={winA ? game.ml_prob_a : null}
+          vegasSpread={game.vegas_spread_a}
+          delay={delay} onClick={onTeamClick} onOverrideClick={handleOverride}
         />,
         <Slot key={`${ri}-${gi}-b`}
           x={x} y={y + SLOT_H + PAIR_GAP} seed={game.seed_b} team={game.team_b}
           isWinner={!winA} isUpset={game.is_upset && !winA} isDiff={diff && !winA}
-          isGlow={hlTeamGames} prob={!winA ? (1 - (game.ml_prob_a ?? 0.5)) : null}
-          delay={delay + 0.02} onClick={onTeamClick}
+          isOverride={game.is_override && !winA} isGlow={hlTeamGames}
+          prob={!winA ? (1 - (game.ml_prob_a ?? 0.5)) : null}
+          vegasSpread={game.vegas_spread_b}
+          delay={delay + 0.02} onClick={onTeamClick} onOverrideClick={handleOverride}
         />
       );
+
     });
   });
 
@@ -274,14 +304,16 @@ function MobileRegionTabs({ selected, onChange }) {
 
 // ── Main Component ────────────────────────────────────────────────
 
-export default function InteractiveBracket({ safePicks, equityPicks, champion, diffs, allTeams }) {
+export default function InteractiveBracket({ safePicks, equityPicks, overridePicks, champion, diffs, allTeams, onOverridePick, alerts }) {
   const [mode, setMode] = useState('equity');
   const [highlightTeam, setHighlightTeam] = useState(null);
   const [mobileRegion, setMobileRegion] = useState('East');
   const [scale, setScale] = useState(1);
   const containerRef = useRef(null);
 
-  const picks = mode === 'safe' ? safePicks : equityPicks;
+  const picks = overridePicks && mode === 'equity'
+    ? overridePicks
+    : mode === 'safe' ? safePicks : equityPicks;
   const currentChampion = mode === 'safe'
     ? safePicks?.find(p => p.round === 2)?.winner
     : champion;
@@ -309,8 +341,26 @@ export default function InteractiveBracket({ safePicks, equityPicks, champion, d
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
+  // Build alert lookup: key = "team_a|team_b" → alert score
+  const alertItems = alerts?.items ?? alerts ?? [];
+  const alertLookup = useMemo(() => {
+    const map = {};
+    for (const a of alertItems) {
+      // Key by both possible orderings
+      map[`${a.favorite}|${a.underdog}`] = a.upset_score ?? 0;
+      map[`${a.underdog}|${a.favorite}`] = a.upset_score ?? 0;
+    }
+    return map;
+  }, [alertItems]);
+
   const handleTeamClick = (team) => {
     setHighlightTeam(prev => prev === team ? null : team);
+  };
+
+  const handleOverrideClick = (gameWithClickedTeam) => {
+    if (onOverridePick) {
+      onOverridePick(gameWithClickedTeam);
+    }
   };
 
   if (!picks?.length || !trees) {
@@ -397,18 +447,18 @@ export default function InteractiveBracket({ safePicks, equityPicks, champion, d
             {/* Left regions */}
             <RegionSVG tree={trees.East} ox={leftX} oy={20} side="left"
               diffs={activeDiffs} highlightTeam={highlightTeam}
-              onTeamClick={handleTeamClick} baseDelay={0} />
+              onTeamClick={handleTeamClick} onOverrideClick={handleOverrideClick} alertLookup={alertLookup} baseDelay={0} />
             <RegionSVG tree={trees.South} ox={leftX} oy={INNER_H/2 + 20} side="left"
               diffs={activeDiffs} highlightTeam={highlightTeam}
-              onTeamClick={handleTeamClick} baseDelay={0.1} />
+              onTeamClick={handleTeamClick} onOverrideClick={handleOverrideClick} alertLookup={alertLookup} baseDelay={0.1} />
 
             {/* Right regions */}
             <RegionSVG tree={trees.West} ox={rightX} oy={20} side="right"
               diffs={activeDiffs} highlightTeam={highlightTeam}
-              onTeamClick={handleTeamClick} baseDelay={0.05} />
+              onTeamClick={handleTeamClick} onOverrideClick={handleOverrideClick} alertLookup={alertLookup} baseDelay={0.05} />
             <RegionSVG tree={trees.Midwest} ox={rightX} oy={INNER_H/2 + 20} side="right"
               diffs={activeDiffs} highlightTeam={highlightTeam}
-              onTeamClick={handleTeamClick} baseDelay={0.15} />
+              onTeamClick={handleTeamClick} onOverrideClick={handleOverrideClick} alertLookup={alertLookup} baseDelay={0.15} />
 
             {/* Center: Final Four + Championship */}
             <CenterSVG picks={picks} champion={currentChampion}
@@ -428,7 +478,7 @@ export default function InteractiveBracket({ safePicks, equityPicks, champion, d
             width="100%" style={{ minWidth: 320 }}>
             <RegionSVG tree={trees[mobileRegion]} ox={10} oy={10} side="left"
               diffs={activeDiffs} highlightTeam={highlightTeam}
-              onTeamClick={handleTeamClick} baseDelay={0} />
+              onTeamClick={handleTeamClick} onOverrideClick={handleOverrideClick} alertLookup={alertLookup} baseDelay={0} />
           </svg>
         </div>
       </div>
