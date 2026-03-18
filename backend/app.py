@@ -183,6 +183,31 @@ def run_simulation(req: SimulationRequest):
                 bracket_result["picks"].loc[pick.name, "vegas_spread_a"] = vdata["spread_a"]
                 bracket_result["picks"].loc[pick.name, "vegas_spread_b"] = vdata["spread_b"]
 
+    # Enrich picks with equity data (true_win_prob, public_pick_pct) for the Equity Dashboard
+    equity_df = state["equity_df"]
+    for bracket_result in [safe, equity]:
+        picks_df = bracket_result["picks"]
+        for idx, pick in picks_df.iterrows():
+            rd = pick["round"]
+            # Look up equity data for team_a
+            eq_a = equity_df[
+                (equity_df["team_name"] == pick["team_a"]) &
+                (equity_df["round"] == rd)
+            ]
+            if len(eq_a) > 0:
+                picks_df.loc[idx, "true_win_prob_a"] = eq_a.iloc[0]["win_prob"]
+                picks_df.loc[idx, "public_pick_pct_a"] = eq_a.iloc[0]["public_pick_pct"]
+                picks_df.loc[idx, "equity_score_a"] = eq_a.iloc[0]["blended_score"]
+            # Look up equity data for team_b
+            eq_b = equity_df[
+                (equity_df["team_name"] == pick["team_b"]) &
+                (equity_df["round"] == rd)
+            ]
+            if len(eq_b) > 0:
+                picks_df.loc[idx, "true_win_prob_b"] = eq_b.iloc[0]["win_prob"]
+                picks_df.loc[idx, "public_pick_pct_b"] = eq_b.iloc[0]["public_pick_pct"]
+                picks_df.loc[idx, "equity_score_b"] = eq_b.iloc[0]["blended_score"]
+
     # Sanitize optimizer picks (may contain NaN from ML features)
     def _clean_df_records(df):
         return _sanitize(df.to_dict(orient="records"))
@@ -229,29 +254,46 @@ def get_bracket_data():
     return state["bracket"]
 
 
+class UpsetAlertsRequest(BaseModel):
+    """Optional custom picks for upset detection (e.g. after overrides)."""
+    picks: list = None  # If provided, use these as projected picks
+
+
+@app.post("/api/upset-alerts")
+def post_upset_alerts(req: UpsetAlertsRequest):
+    """Return upset detection results using custom picks (e.g. after overrides)."""
+    return _run_upset_alerts(custom_picks=req.picks)
+
+
 @app.get("/api/upset-alerts")
 def get_upset_alerts():
     """Return upset detection results for ALL rounds.
 
     Uses projected picks from the equity bracket for R32+ matchups.
     """
+    return _run_upset_alerts(custom_picks=None)
+
+
+def _run_upset_alerts(custom_picks: list = None):
+    """Shared upset alert logic. Uses custom_picks if provided, otherwise generates from equity bracket."""
     state = _get_state()
 
-    # Re-run upset detection with projected picks for all rounds
     from upset_detector import detect_upsets
     from optimizer import optimize_bracket
-    from pool_equity import compute_all_equity, sim_results_to_win_probs
 
     curr = state["curr"]
     refs = state["refs"]
     bracket = state["bracket"]
 
-    # Get equity bracket picks for projected matchups
-    equity_df = state["equity_df"]
-    eq_bracket = optimize_bracket(
-        bracket, curr, state["ml_predict"], equity_df,
-        refs["seed_results"], risk=0.5)
-    projected_picks = eq_bracket["picks"].to_dict(orient="records")
+    if custom_picks:
+        projected_picks = custom_picks
+    else:
+        # Generate from equity bracket
+        equity_df = state["equity_df"]
+        eq_bracket = optimize_bracket(
+            bracket, curr, state["ml_predict"], equity_df,
+            refs["seed_results"], risk=0.5)
+        projected_picks = eq_bracket["picks"].to_dict(orient="records")
 
     vegas_lines = refs.get("vegas_lines_2026")
 

@@ -138,6 +138,9 @@ export default function App() {
   }, [error]);
 
   const handleRunSimulation = (params) => {
+    // Clear previous overrides and alerts so new results show fresh
+    setOverridePicks(null);
+    setOverrideHistory([]);
     runSimulation(params);
   };
 
@@ -173,6 +176,8 @@ export default function App() {
         cascade_count: result.total_changes - 1,
         cascaded_changes: result.changes?.filter(c => c.type === 'cascade') || [],
       }]);
+      // Re-fetch upset alerts with the new overridden bracket
+      fetchAlerts(result.picks);
     }
     setPendingOverride(null);
   };
@@ -188,6 +193,8 @@ export default function App() {
   const handleResetAll = () => {
     setOverridePicks(null);
     setOverrideHistory([]);
+    // Re-fetch default alerts (without overrides)
+    fetchAlerts();
   };
 
   // Extract data from simulation response

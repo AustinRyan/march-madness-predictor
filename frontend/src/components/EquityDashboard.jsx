@@ -137,53 +137,32 @@ function EquityLegend() {
 }
 
 export default function EquityDashboard({ picks }) {
-  // Filter to R64 picks with the needed fields
+  // Filter to R64 picks that have equity data enriched by the backend
   const r64 = (picks ?? []).filter(
     (p) =>
-      (p.round === 'R64' || p.round === 'Round of 64') &&
-      p.true_win_prob != null &&
-      p.public_pick_pct != null
+      p.round === 64 &&
+      (p.true_win_prob_a != null || p.public_pick_pct_a != null)
   );
 
   // Build one data point per team per game
   const points = [];
   for (const p of r64) {
-    if (p.team_a) {
+    if (p.team_a && p.true_win_prob_a != null) {
       points.push({
         team: p.team_a,
         seed: p.seed_a,
-        true_win_prob: p.ml_prob_a ?? p.true_win_prob_a,
-        public_pick_pct: p.public_pick_pct_a ?? p.public_pick_pct,
-        equity_score: p.equity_score_a ?? p.equity_score,
+        true_win_prob: p.true_win_prob_a,
+        public_pick_pct: p.public_pick_pct_a,
+        equity_score: p.equity_score_a,
       });
     }
-    if (p.team_b) {
+    if (p.team_b && p.true_win_prob_b != null) {
       points.push({
         team: p.team_b,
         seed: p.seed_b,
-        true_win_prob:
-          p.ml_prob_a != null ? 1 - p.ml_prob_a : p.true_win_prob_b,
+        true_win_prob: p.true_win_prob_b,
         public_pick_pct: p.public_pick_pct_b,
         equity_score: p.equity_score_b,
-      });
-    }
-  }
-
-  // If the API provides a flat list with one team per record
-  if (points.length === 0 && picks) {
-    const flat = picks.filter(
-      (p) =>
-        (p.round === 'R64' || p.round === 'Round of 64') &&
-        p.true_win_prob != null &&
-        p.public_pick_pct != null
-    );
-    for (const p of flat) {
-      points.push({
-        team: p.team ?? p.team_a,
-        seed: p.seed ?? p.seed_a,
-        true_win_prob: p.true_win_prob ?? p.ml_prob_a,
-        public_pick_pct: p.public_pick_pct,
-        equity_score: p.equity_score,
       });
     }
   }

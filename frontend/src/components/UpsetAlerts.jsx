@@ -1,20 +1,56 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
-const FLAG_LABELS = {
-  low_seed_quality: 'Low Seed Quality',
-  coaching_edge: 'Coaching Edge',
-  tempo_mismatch: 'Tempo Mismatch',
-  recent_form: 'Recent Form',
-  three_point_reliance: '3PT Reliance',
-  experience_factor: 'Experience Factor',
-  fatigue_risk: 'Fatigue Risk',
-  historical_seed_upset: 'Historical Seed Upset',
-  kenpom_discrepancy: 'KenPom Discrepancy',
-  vegas_line_shift: 'Vegas Line Shift',
-  momentum: 'Momentum',
-  neutral_site: 'Neutral Site',
+const FLAG_INFO = {
+  rank_within_15: {
+    label: 'KenPom Close',
+    description: 'KenPom rankings are within 15 spots — the underdog is much closer in quality than the seeding suggests.',
+  },
+  tempo_mismatch_8: {
+    label: 'Tempo Mismatch',
+    description: 'Teams differ by 8+ possessions per game in tempo. Stylistic mismatches can neutralize a favorite\'s strengths and create chaos.',
+  },
+  favorite_fading: {
+    label: 'Favorite Fading',
+    description: 'The favorite has a high positive Luck rating (>0.04), meaning they overperformed during the season and are likely to regress toward their true level.',
+  },
+  dog_coach_above_avg: {
+    label: 'Coaching Edge',
+    description: 'The underdog\'s coach has an above-average tournament PAKE (Performance Against KenPom Expectations), indicating they consistently outperform expectations in March.',
+  },
+  dog_luck_negative: {
+    label: 'Underdog Due',
+    description: 'The underdog has a negative Luck rating, meaning they underperformed during the season relative to their true talent. They\'re due for positive regression.',
+  },
+  style_clash_3pt: {
+    label: '3PT Style Clash',
+    description: 'The underdog has a top-30 defensive rating AND the favorite has a top-30 offensive rating — a high-stakes style clash where elite defense can neutralize elite offense.',
+  },
+  hist_upset_rate_30: {
+    label: 'Historical Upset',
+    description: 'This exact seed matchup has been upset more than 30% of the time historically in this round (e.g., 5 vs 12 seeds upset ~35% of the time in R64).',
+  },
+  elo_close: {
+    label: 'AdjEM Close',
+    description: 'The Adjusted Efficiency Margin gap between teams is less than 8 points — statistically a toss-up game where the underdog has a real shot.',
+  },
+  fav_soft_losses: {
+    label: 'Soft Favorite',
+    description: 'The favorite\'s Wins Above Bubble (WAB) rank is worse than 20th, meaning their resume includes soft wins against weaker competition.',
+  },
+  vegas_close_line: {
+    label: 'Vegas Close Line',
+    description: 'Vegas has the spread at 5.5 points or less — the betting market sees this as a competitive game.',
+  },
+  vegas_upset_likely: {
+    label: 'Vegas Upset Signal',
+    description: 'Vegas implied probability gives the underdog a greater than 25% chance of winning outright.',
+  },
 };
+
+const FLAG_LABELS = Object.fromEntries(
+  Object.entries(FLAG_INFO).map(([k, v]) => [k, v.label])
+);
 
 function getFlagLabel(flag) {
   return FLAG_LABELS[flag] ?? flag.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -208,6 +244,124 @@ function AlertCard({ alert, index }) {
   );
 }
 
+function TriggerLegend() {
+  const [open, setOpen] = useState(true);
+  const entries = Object.entries(FLAG_INFO);
+  const baseEntries = entries.filter(([k]) => !k.startsWith('vegas_'));
+  const vegasEntries = entries.filter(([k]) => k.startsWith('vegas_'));
+
+  return (
+    <div className="mt-8">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 font-mono text-xs tracking-widest uppercase transition-colors"
+        style={{ color: open ? '#ef4444' : '#475569' }}
+      >
+        <span
+          className="inline-flex items-center justify-center w-5 h-5 rounded-md text-xs"
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          {open ? '−' : '?'}
+        </span>
+        What do these triggers mean?
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div
+              className="mt-4 rounded-xl p-6 space-y-5"
+              style={{
+                backgroundColor: '#0f1629',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+            >
+              <div className="space-y-1 mb-4">
+                <p className="font-mono text-xs text-slate-400 leading-relaxed">
+                  Each game is checked against up to 11 upset conditions. The more triggers that fire, the higher the upset score.
+                  Games with 3+ triggers are flagged as <span style={{ color: '#ef4444' }}>HIGH ALERT</span>. Games with 2 triggers are on <span style={{ color: '#f5a623' }}>WATCH</span>.
+                </p>
+              </div>
+
+              <p className="font-mono text-xs text-slate-600 uppercase tracking-widest">
+                Base Triggers (always evaluated)
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {baseEntries.map(([key, { label, description }]) => (
+                  <div
+                    key={key}
+                    className="rounded-lg p-3 space-y-1"
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.04)',
+                    }}
+                  >
+                    <span
+                      className="font-mono text-xs font-bold px-2 py-0.5 rounded inline-block"
+                      style={{
+                        color: '#fbbf24',
+                        backgroundColor: 'rgba(245,166,35,0.08)',
+                        border: '1px solid rgba(245,166,35,0.15)',
+                      }}
+                    >
+                      {label}
+                    </span>
+                    <p className="font-mono text-xs text-slate-500 leading-relaxed">
+                      {description}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {vegasEntries.length > 0 && (
+                <>
+                  <p className="font-mono text-xs text-slate-600 uppercase tracking-widest pt-2">
+                    Vegas Triggers (when betting lines available)
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {vegasEntries.map(([key, { label, description }]) => (
+                      <div
+                        key={key}
+                        className="rounded-lg p-3 space-y-1"
+                        style={{
+                          backgroundColor: 'rgba(255,255,255,0.02)',
+                          border: '1px solid rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        <span
+                          className="font-mono text-xs font-bold px-2 py-0.5 rounded inline-block"
+                          style={{
+                            color: '#a78bfa',
+                            backgroundColor: 'rgba(167,139,250,0.08)',
+                            border: '1px solid rgba(167,139,250,0.15)',
+                          }}
+                        >
+                          {label}
+                        </span>
+                        <p className="font-mono text-xs text-slate-500 leading-relaxed">
+                          {description}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export default function UpsetAlerts({ alerts }) {
   const [roundFilter, setRoundFilter] = useState('ALL');
 
@@ -341,6 +495,9 @@ export default function UpsetAlerts({ alerts }) {
           <span className="font-mono text-xs text-slate-400">WATCH (2.0–2.9)</span>
         </div>
       </div>
+
+      {/* Trigger explanations */}
+      <TriggerLegend />
 
       {/* Cards grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

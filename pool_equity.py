@@ -51,14 +51,17 @@ ROUND_TO_PICK_COL = {
 def sim_results_to_win_probs(sim_results: pd.DataFrame) -> dict[str, dict[int, float]]:
     """Convert simulation team_results DataFrame into per-team win probability dicts.
 
-    The simulation gives advancement rates (R64_pct, R32_pct, ..., champ_pct).
-    These ARE the team-specific true win probabilities for equity scoring.
+    The simulation gives advancement rates (R64_pct = made R64, R32_pct = made R32, etc.).
+    For equity scoring, round N's "win prob" is the probability of WINNING that round's game,
+    which equals the rate of advancing to the NEXT round. For example:
+      - Round 64 win prob = R32_pct (probability of advancing past R64 into R32)
+      - Round 32 win prob = R16_pct (probability of advancing past R32 into S16)
 
     Returns {team_name: {64: prob, 32: prob, 16: prob, 8: prob, 4: prob, 2: prob}}
     """
     col_map = {
-        64: "R64_pct", 32: "R32_pct", 16: "R16_pct",
-        8: "R8_pct", 4: "R4_pct", 2: "champ_pct",
+        64: "R32_pct", 32: "R16_pct", 16: "R8_pct",
+        8: "R4_pct", 4: "champ_pct", 2: "champ_pct",
     }
     probs = {}
     for _, row in sim_results.iterrows():

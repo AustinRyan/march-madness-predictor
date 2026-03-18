@@ -37,17 +37,22 @@ export function useUpsetAlerts() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchAlerts = useCallback(async () => {
+  const fetchAlerts = useCallback(async (customPicks) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get('/api/upset-alerts');
+      // If custom picks provided (e.g. after override), POST them so alerts
+      // reflect the current bracket state. Otherwise GET default alerts.
+      const response = customPicks
+        ? await axios.post('/api/upset-alerts', { picks: customPicks })
+        : await axios.get('/api/upset-alerts');
       // API returns {total_games, high_alerts, round_summary, alerts: [...]}
       const raw = response.data.alerts || response.data || [];
       const FLAG_KEYS = [
         'rank_within_15', 'tempo_mismatch_8', 'favorite_fading',
         'dog_coach_above_avg', 'dog_luck_negative', 'style_clash_3pt',
         'hist_upset_rate_30', 'elo_close', 'fav_soft_losses',
+        'vegas_close_line', 'vegas_upset_likely',
       ];
       const cleaned = raw.map((a) => ({
         ...a,
