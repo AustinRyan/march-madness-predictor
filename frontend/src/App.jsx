@@ -158,7 +158,7 @@ export default function App() {
   const [overrideHistory, setOverrideHistory] = useState([]);
   const [pendingOverride, setPendingOverride] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('live');
+  const [activeTab, setActiveTab] = useState('predictions');
 
   // Live bracket data
   const { data: liveData, loading: liveLoading, fetchLiveBracket } = useLiveBracket();
