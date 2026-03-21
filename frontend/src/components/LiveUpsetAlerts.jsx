@@ -80,8 +80,20 @@ function LiveAlertCard({ alert, index }) {
               {alert.favorite ?? '—'}
             </span>
           </div>
-          {alert.region && (
-            <p className="font-mono text-xs text-slate-600 mt-1">{alert.region}</p>
+          {(alert.region || alert.game_date) && (
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {alert.region && (
+                <span className="font-mono text-xs text-slate-600">{alert.region}</span>
+              )}
+              {alert.game_date && (
+                <span className="font-mono text-xs px-2 py-0.5 rounded"
+                  style={{ color: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)' }}>
+                  {new Date(alert.game_date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                  {alert.game_time ? ` · ${alert.game_time}` : ''}
+                  {alert.tv ? ` · ${alert.tv}` : ''}
+                </span>
+              )}
+            </div>
           )}
         </div>
 

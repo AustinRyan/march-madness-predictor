@@ -78,7 +78,9 @@ function GameSlot({ game }) {
       )}
       {game.status === 'upcoming' && (
         <div className="px-3 py-0.5 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.02)' }}>
-          <span className="font-mono text-xs text-slate-600">UPCOMING</span>
+          <span className="font-mono text-xs text-slate-600">
+            {game.game_time ? `${game.game_time}${game.tv ? ` · ${game.tv}` : ''}` : 'UPCOMING'}
+          </span>
         </div>
       )}
     </div>

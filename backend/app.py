@@ -579,6 +579,26 @@ def _derive_next_round_matchups(results: dict) -> list[dict]:
     return derived
 
 
+def _attach_schedule(rounds: dict, schedule: dict):
+    """Attach date/time/tv info from round_schedule to matchups in rounds."""
+    for rd_key, rd_games in rounds.items():
+        rd_sched = schedule.get(rd_key, {})
+        if not rd_sched:
+            continue
+        # Build lookup: (team_a, team_b) -> {date, time, tv}
+        sched_lookup = {}
+        for date_str, games in rd_sched.items():
+            for sg in games:
+                sched_lookup[(sg["team_a"], sg["team_b"])] = {
+                    "game_date": date_str, "game_time": sg["time"], "tv": sg["tv"],
+                }
+        for g in rd_games:
+            info = sched_lookup.get((g["team_a"], g["team_b"])) or \
+                   sched_lookup.get((g["team_b"], g["team_a"]))
+            if info:
+                g.update(info)
+
+
 @app.get("/api/live/bracket")
 def get_live_bracket():
     """Return live tournament bracket with actual results and derived matchups."""
@@ -636,6 +656,10 @@ def get_live_bracket():
                         "loser_seed": loser_seed, "score": score_str,
                         "region": g["region"],
                     })
+
+    # Attach schedule info (date/time/tv) to derived matchups
+    schedule = results.get("round_schedule", {})
+    _attach_schedule(rounds, schedule)
 
     return JSONResponse(content={
         "last_updated": results.get("last_updated"),
@@ -701,12 +725,30 @@ def get_live_upset_alerts():
         "watch": int(((alerts_df["upset_score"] >= 2) & (~alerts_df["high_alert"])).sum()) if len(alerts_df) > 0 else 0,
     }
 
+    # Attach schedule info to alerts
+    schedule = results.get("round_schedule", {})
+    rd_sched = schedule.get(str(target_round), {})
+    sched_lookup = {}
+    for date_str, games in rd_sched.items():
+        for sg in games:
+            sched_lookup[(sg["team_a"], sg["team_b"])] = {
+                "game_date": date_str, "game_time": sg["time"], "tv": sg["tv"],
+            }
+
+    alert_records = _sanitize(alerts_df.to_dict(orient="records"))
+    for a in alert_records:
+        fav = a.get("favorite", "")
+        dog = a.get("underdog", "")
+        info = sched_lookup.get((fav, dog)) or sched_lookup.get((dog, fav))
+        if info:
+            a.update(info)
+
     return nan_safe_response({
         "round": target_round,
         "round_label": ROUND_LABELS.get(target_round, f"Round of {target_round}"),
         "total_games": len(alerts_df),
         "high_alerts": round_summary["high"],
-        "alerts": _sanitize(alerts_df.to_dict(orient="records")),
+        "alerts": alert_records,
         "round_summary": round_summary,
     })
 
