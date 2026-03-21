@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
-import { useSimulation, useUpsetAlerts, useOverride } from './hooks/useApi';
+import { useSimulation, useUpsetAlerts, useOverride, useLiveBracket, useLiveUpsetAlerts } from './hooks/useApi';
 import Hero from './components/Hero';
 import SimLoading from './components/SimLoading';
 import BracketView from './components/BracketView';
@@ -13,14 +13,18 @@ import FinalFour from './components/FinalFour';
 import EquityDashboard from './components/EquityDashboard';
 import BenchmarkPanel from './components/BenchmarkPanel';
 import HelpPanel from './components/HelpPanel';
+import LiveHeader from './components/LiveHeader';
+import LiveBracketView from './components/LiveBracketView';
+import LiveUpsetAlerts from './components/LiveUpsetAlerts';
+import LiveResultsTable from './components/LiveResultsTable';
 
-function SectionDivider() {
+function SectionDivider({ color }) {
   return (
     <div
       className="w-full h-px mx-auto max-w-5xl"
       style={{
         background:
-          'linear-gradient(90deg, transparent, rgba(245,166,35,0.15), transparent)',
+          `linear-gradient(90deg, transparent, ${color || 'rgba(245,166,35,0.15)'}, transparent)`,
       }}
     />
   );
@@ -58,8 +62,8 @@ function ErrorBanner({ message, onDismiss }) {
   );
 }
 
-function NavBar({ hasResults, onScrollTo, onOpenHelp }) {
-  const sections = hasResults
+function NavBar({ hasResults, onScrollTo, onOpenHelp, activeTab, onTabChange }) {
+  const predictionSections = hasResults
     ? [
         { id: 'bracket', label: 'Bracket' },
         { id: 'upsets', label: 'Upset Alerts' },
@@ -68,6 +72,14 @@ function NavBar({ hasResults, onScrollTo, onOpenHelp }) {
         { id: 'benchmark', label: 'Benchmark' },
       ]
     : [];
+
+  const liveSections = [
+    { id: 'live-bracket', label: 'Bracket' },
+    { id: 'live-upsets', label: 'Upset Alerts' },
+    { id: 'live-results', label: 'Results' },
+  ];
+
+  const sections = activeTab === 'predictions' ? predictionSections : liveSections;
 
   return (
     <nav
@@ -78,12 +90,37 @@ function NavBar({ hasResults, onScrollTo, onOpenHelp }) {
         borderBottom: '1px solid rgba(255,255,255,0.04)',
       }}
     >
-      <span
-        className="font-mono font-black text-sm tracking-widest"
-        style={{ color: '#f5a623' }}
-      >
-        MM·AI
-      </span>
+      <div className="flex items-center gap-4">
+        <span
+          className="font-mono font-black text-sm tracking-widest"
+          style={{ color: '#f5a623' }}
+        >
+          MM·AI
+        </span>
+        {/* Tab switcher */}
+        <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,0.08)' }}>
+          <button
+            onClick={() => onTabChange('live')}
+            className="font-mono text-xs px-3 py-1.5 transition-colors"
+            style={{
+              backgroundColor: activeTab === 'live' ? 'rgba(34,197,94,0.15)' : 'transparent',
+              color: activeTab === 'live' ? '#22c55e' : '#475569',
+            }}
+          >
+            Live
+          </button>
+          <button
+            onClick={() => onTabChange('predictions')}
+            className="font-mono text-xs px-3 py-1.5 transition-colors"
+            style={{
+              backgroundColor: activeTab === 'predictions' ? 'rgba(245,166,35,0.15)' : 'transparent',
+              color: activeTab === 'predictions' ? '#f5a623' : '#475569',
+            }}
+          >
+            Predictions
+          </button>
+        </div>
+      </div>
       {sections.length > 0 && (
         <div className="hidden sm:flex items-center gap-6">
           {sections.map(({ id, label }) => (
@@ -121,6 +158,19 @@ export default function App() {
   const [overrideHistory, setOverrideHistory] = useState([]);
   const [pendingOverride, setPendingOverride] = useState(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('live');
+
+  // Live bracket data
+  const { data: liveData, loading: liveLoading, fetchLiveBracket } = useLiveBracket();
+  const { alerts: liveAlerts, fetchLiveAlerts: fetchLiveUpsets } = useLiveUpsetAlerts();
+
+  // Fetch live data on mount and when switching to live tab
+  useEffect(() => {
+    if (activeTab === 'live') {
+      fetchLiveBracket();
+      fetchLiveUpsets();
+    }
+  }, [activeTab, fetchLiveBracket, fetchLiveUpsets]);
 
   // When simulation completes, fetch upset alerts and scroll to results
   useEffect(() => {
@@ -138,7 +188,6 @@ export default function App() {
   }, [error]);
 
   const handleRunSimulation = (params) => {
-    // Clear previous overrides and alerts so new results show fresh
     setOverridePicks(null);
     setOverrideHistory([]);
     runSimulation(params);
@@ -149,7 +198,6 @@ export default function App() {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Override: user clicks a losing team in the bracket
   const handleOverridePick = (gameWithClickedTeam) => {
     setPendingOverride(gameWithClickedTeam);
   };
@@ -176,30 +224,22 @@ export default function App() {
         cascade_count: result.total_changes - 1,
         cascaded_changes: result.changes?.filter(c => c.type === 'cascade') || [],
       }]);
-      // Re-fetch upset alerts with the new overridden bracket
       fetchAlerts(result.picks);
     }
     setPendingOverride(null);
   };
 
   const handleUndoOverride = (index) => {
-    // Remove this override and all subsequent ones, then replay from original
     setOverrideHistory(prev => prev.filter((_, i) => i !== index));
-    // Reset to original picks — ideally would replay remaining overrides
-    // but for simplicity, reset to model picks
     setOverridePicks(null);
   };
 
   const handleResetAll = () => {
     setOverridePicks(null);
     setOverrideHistory([]);
-    // Re-fetch default alerts (without overrides)
     fetchAlerts();
   };
 
-  // Extract data from simulation response
-  // API returns: { safe_bracket: {picks, final_four, champion, ...},
-  //               equity_bracket: {...}, comparison: {...}, simulation: {...} }
   const safeBracket = simData?.safe_bracket;
   const equityBracket = simData?.equity_bracket;
   const picks = equityBracket?.picks ?? safeBracket?.picks ?? [];
@@ -208,7 +248,6 @@ export default function App() {
   const comparison = simData?.comparison ?? null;
   const inlineAlerts = alerts;
 
-  // Transform final_four from {East: "Duke", ...} to array format for FinalFour component
   const ffRaw = equityBracket?.final_four ?? safeBracket?.final_four ?? null;
   const allTeams = simulation?.all_teams ?? simulation?.top_contenders ?? [];
   const finalFour = ffRaw
@@ -232,7 +271,13 @@ export default function App() {
       className="min-h-screen"
       style={{ backgroundColor: '#0a0e1a' }}
     >
-      <NavBar hasResults={hasResults} onScrollTo={scrollTo} onOpenHelp={() => setHelpOpen(true)} />
+      <NavBar
+        hasResults={hasResults}
+        onScrollTo={scrollTo}
+        onOpenHelp={() => setHelpOpen(true)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+      />
       <HelpPanel isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       {/* Error toast */}
@@ -254,163 +299,207 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Hero — always visible */}
-      <div className="pt-12">
-        <Hero onRunSimulation={handleRunSimulation} loading={loading} />
-      </div>
+      {/* ── LIVE BRACKET TAB ── */}
+      {activeTab === 'live' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="pt-12"
+        >
+          <LiveHeader data={liveData} />
 
-      {/* Loading overlay */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            className="fixed inset-0 z-30"
-            style={{ backgroundColor: '#0a0e1a' }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <SimLoading />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <SectionDivider color="rgba(34,197,94,0.15)" />
 
-      {/* Results */}
-      <AnimatePresence>
-        {hasResults && !loading && (
-          <motion.div
-            ref={resultsRef}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
+          <div id="live-bracket">
+            <LiveBracketView rounds={liveData?.rounds} />
+          </div>
+
+          <SectionDivider color="rgba(34,197,94,0.15)" />
+
+          <div id="live-upsets">
+            <LiveUpsetAlerts alerts={liveAlerts} />
+          </div>
+
+          <SectionDivider color="rgba(34,197,94,0.15)" />
+
+          <div id="live-results">
+            <LiveResultsTable rounds={liveData?.rounds} />
+          </div>
+
+          <footer
+            className="text-center py-12 px-4 mt-8"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
           >
-            {/* Results header */}
-            <div
-              className="w-full py-8 px-4 text-center"
-              style={{
-                backgroundColor: '#0f1629',
-                borderTop: '1px solid rgba(245,166,35,0.15)',
-                borderBottom: '1px solid rgba(245,166,35,0.08)',
-              }}
-            >
+            <p className="font-mono text-xs text-slate-600">
+              2026 March Madness AI — Live Tournament Tracker
+            </p>
+          </footer>
+        </motion.div>
+      )}
+
+      {/* ── PREDICTIONS TAB ── */}
+      {activeTab === 'predictions' && (
+        <>
+          {/* Hero */}
+          <div className="pt-12">
+            <Hero onRunSimulation={handleRunSimulation} loading={loading} />
+          </div>
+
+          {/* Loading overlay */}
+          <AnimatePresence>
+            {loading && (
               <motion.div
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
+                className="fixed inset-0 z-30"
+                style={{ backgroundColor: '#0a0e1a' }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <p className="font-mono text-xs tracking-[0.4em] text-slate-500 uppercase mb-2">
-                  Simulation Complete — 50,000 runs
-                </p>
-                <h2
-                  className="font-mono font-black text-2xl text-white"
-                  style={{ textShadow: '0 0 20px rgba(245,166,35,0.2)' }}
-                >
-                  2026 BRACKET ANALYSIS
-                </h2>
+                <SimLoading />
               </motion.div>
-            </div>
+            )}
+          </AnimatePresence>
 
-            {/* Final Four */}
-            <motion.div
-              id="final-four"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-            >
-              <FinalFour finalFour={finalFour} champion={champion} />
-            </motion.div>
+          {/* Results */}
+          <AnimatePresence>
+            {hasResults && !loading && (
+              <motion.div
+                ref={resultsRef}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                {/* Results header */}
+                <div
+                  className="w-full py-8 px-4 text-center"
+                  style={{
+                    backgroundColor: '#0f1629',
+                    borderTop: '1px solid rgba(245,166,35,0.15)',
+                    borderBottom: '1px solid rgba(245,166,35,0.08)',
+                  }}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    <p className="font-mono text-xs tracking-[0.4em] text-slate-500 uppercase mb-2">
+                      Simulation Complete — 50,000 runs
+                    </p>
+                    <h2
+                      className="font-mono font-black text-2xl text-white"
+                      style={{ textShadow: '0 0 20px rgba(245,166,35,0.2)' }}
+                    >
+                      2026 BRACKET ANALYSIS
+                    </h2>
+                  </motion.div>
+                </div>
 
-            <SectionDivider />
+                {/* Final Four */}
+                <motion.div
+                  id="final-four"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1, duration: 0.5 }}
+                >
+                  <FinalFour finalFour={finalFour} champion={champion} />
+                </motion.div>
 
-            {/* Bracket — Interactive + Stats table with tab toggle */}
-            <motion.div
-              id="bracket"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              <OverrideHistory
-                overrides={overrideHistory}
-                onUndoOverride={handleUndoOverride}
-                onResetAll={handleResetAll}
-              />
-              <InteractiveBracket
-                safePicks={safeBracket?.picks ?? []}
-                equityPicks={equityBracket?.picks ?? []}
-                overridePicks={overridePicks}
-                champion={overridePicks
-                  ? overridePicks.find(p => p.round === 2)?.winner
-                  : equityBracket?.champion ?? safeBracket?.champion}
-                diffs={comparison?.differences ?? []}
-                allTeams={allTeams}
-                onOverridePick={handleOverridePick}
-                alerts={inlineAlerts}
-              />
-              <div className="px-4 max-w-5xl mx-auto mt-4 mb-2">
-                <details className="group">
-                  <summary className="font-mono text-xs text-slate-500 cursor-pointer hover:text-slate-300 transition-colors">
-                    Show game-by-game stats table
-                  </summary>
-                  <div className="mt-4">
-                    <BracketView picks={picks} />
+                <SectionDivider />
+
+                {/* Bracket */}
+                <motion.div
+                  id="bracket"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                >
+                  <OverrideHistory
+                    overrides={overrideHistory}
+                    onUndoOverride={handleUndoOverride}
+                    onResetAll={handleResetAll}
+                  />
+                  <InteractiveBracket
+                    safePicks={safeBracket?.picks ?? []}
+                    equityPicks={equityBracket?.picks ?? []}
+                    overridePicks={overridePicks}
+                    champion={overridePicks
+                      ? overridePicks.find(p => p.round === 2)?.winner
+                      : equityBracket?.champion ?? safeBracket?.champion}
+                    diffs={comparison?.differences ?? []}
+                    allTeams={allTeams}
+                    onOverridePick={handleOverridePick}
+                    alerts={inlineAlerts}
+                  />
+                  <div className="px-4 max-w-5xl mx-auto mt-4 mb-2">
+                    <details className="group">
+                      <summary className="font-mono text-xs text-slate-500 cursor-pointer hover:text-slate-300 transition-colors">
+                        Show game-by-game stats table
+                      </summary>
+                      <div className="mt-4">
+                        <BracketView picks={picks} />
+                      </div>
+                    </details>
                   </div>
-                </details>
-              </div>
-            </motion.div>
+                </motion.div>
 
-            <SectionDivider />
+                <SectionDivider />
 
-            {/* Upset Alerts */}
-            <motion.div
-              id="upsets"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-            >
-              <UpsetAlerts alerts={inlineAlerts} />
-            </motion.div>
+                {/* Upset Alerts */}
+                <motion.div
+                  id="upsets"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                >
+                  <UpsetAlerts alerts={inlineAlerts} />
+                </motion.div>
 
-            <SectionDivider />
+                <SectionDivider />
 
-            {/* Equity Dashboard */}
-            <motion.div
-              id="equity"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.5 }}
-            >
-              <EquityDashboard picks={picks} />
-            </motion.div>
+                {/* Equity Dashboard */}
+                <motion.div
+                  id="equity"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <EquityDashboard picks={picks} />
+                </motion.div>
 
-            <SectionDivider />
+                <SectionDivider />
 
-            {/* Benchmark Panel */}
-            <motion.div
-              id="benchmark"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              <BenchmarkPanel />
-            </motion.div>
+                {/* Benchmark Panel */}
+                <motion.div
+                  id="benchmark"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
+                >
+                  <BenchmarkPanel />
+                </motion.div>
 
-            {/* Footer */}
-            <footer
-              className="text-center py-12 px-4 mt-8"
-              style={{
-                borderTop: '1px solid rgba(255,255,255,0.04)',
-              }}
-            >
-              <p className="font-mono text-xs text-slate-600">
-                2026 March Madness AI — Monte Carlo · XGBoost · KenPom · Vegas Lines
-              </p>
-              <p className="font-mono text-xs text-slate-700 mt-2">
-                For informational use only. Not financial or gambling advice.
-              </p>
-            </footer>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {/* Footer */}
+                <footer
+                  className="text-center py-12 px-4 mt-8"
+                  style={{
+                    borderTop: '1px solid rgba(255,255,255,0.04)',
+                  }}
+                >
+                  <p className="font-mono text-xs text-slate-600">
+                    2026 March Madness AI — Monte Carlo · XGBoost · KenPom · Vegas Lines
+                  </p>
+                  <p className="font-mono text-xs text-slate-700 mt-2">
+                    For informational use only. Not financial or gambling advice.
+                  </p>
+                </footer>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

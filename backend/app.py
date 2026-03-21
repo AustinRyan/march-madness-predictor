@@ -405,6 +405,312 @@ def get_vegas_lines():
     })
 
 
+# ── Live Bracket endpoints ────────────────────────────────────────
+
+# Standard NCAA bracket pairing order per region
+# Each tuple: (game1_top_seed, game1_bot_seed, game2_top_seed, game2_bot_seed)
+# Winners of game1 and game2 meet in the next round.
+_R64_PAIRS = [(1, 16, 8, 9), (5, 12, 4, 13), (6, 11, 3, 14), (7, 10, 2, 15)]
+# R32 pairs: winner of (1/16 vs 8/9) plays winner of (5/12 vs 4/13), etc.
+_R32_SEED_GROUPS = [({1, 16, 8, 9}, {5, 12, 4, 13}), ({6, 11, 3, 14}, {7, 10, 2, 15})]
+# S16 pairs: winner of top-half (seeds 1-9 area) vs bottom-half (seeds 3-14 area)
+_S16_SEED_GROUPS = [({1, 16, 8, 9, 5, 12, 4, 13}, {6, 11, 3, 14, 7, 10, 2, 15})]
+
+ROUND_LABELS = {
+    64: "Round of 64", 32: "Round of 32", 16: "Sweet 16",
+    8: "Elite 8", 4: "Final Four", 2: "Championship",
+}
+
+
+def _load_results():
+    """Load results_2026.json. Returns None if file missing or invalid."""
+    results_path = BASE_DIR / "data" / "2026" / "results_2026.json"
+    if not results_path.exists():
+        return None
+    try:
+        with open(results_path) as f:
+            return json.load(f)
+    except (json.JSONDecodeError, IOError):
+        return None
+
+
+def _get_winner_seed(game):
+    """Get the seed of the winner of a completed game."""
+    if game["winner"] == game["team_a"]:
+        return game["seed_a"]
+    return game["seed_b"]
+
+
+def _get_original_seeds(game):
+    """Get the set of original R64 seeds that fed into this game's winner."""
+    # For R64 games, the original seed is just the winner's seed
+    return {_get_winner_seed(game)}
+
+
+def _derive_next_round_matchups(results: dict) -> list[dict]:
+    """Derive next-round matchups from completed games.
+
+    Uses seed-based pairing (not positional) to ensure correct bracket logic.
+    """
+    import copy
+    rounds = copy.deepcopy(results.get("rounds", {}))
+    derived = []
+
+    for rd_num in [64, 32, 16, 8, 4]:
+        rd_key = str(rd_num)
+        next_rd = rd_num // 2 if rd_num > 2 else 2
+        rd_games = rounds.get(rd_key, [])
+        next_rd_games = rounds.get(str(next_rd), [])
+
+        existing_next = {(g["team_a"], g["team_b"]) for g in next_rd_games}
+
+        if rd_num == 64:
+            by_region = {}
+            for g in rd_games:
+                by_region.setdefault(g["region"], []).append(g)
+
+            for region, games in by_region.items():
+                seed_game = {}
+                for g in games:
+                    seed_game[g["seed_a"]] = g
+
+                for s1, s2, s3, s4 in _R64_PAIRS:
+                    g1 = seed_game.get(s1)
+                    g2 = seed_game.get(s3)
+                    if not g1 or not g2:
+                        continue
+                    if g1["status"] != "final" or g2["status"] != "final":
+                        continue
+                    w1, w2 = g1["winner"], g2["winner"]
+                    if (w1, w2) in existing_next or (w2, w1) in existing_next:
+                        continue
+                    s_w1 = _get_winner_seed(g1)
+                    s_w2 = _get_winner_seed(g2)
+                    derived.append({
+                        "region": region, "seed_a": s_w1, "seed_b": s_w2,
+                        "team_a": w1, "team_b": w2,
+                        "score_a": None, "score_b": None,
+                        "winner": None, "status": "upcoming",
+                        "overtime": False, "round": next_rd,
+                    })
+
+        elif rd_num in (32, 16, 8):
+            # For R32+: use seed-based grouping to pair correctly
+            by_region = {}
+            for g in rd_games:
+                by_region.setdefault(g["region"], []).append(g)
+
+            for region, games in by_region.items():
+                finals = [g for g in games if g["status"] == "final"]
+                if len(finals) < 2:
+                    continue
+
+                if rd_num == 32:
+                    seed_groups = _R32_SEED_GROUPS
+                elif rd_num == 16:
+                    seed_groups = _S16_SEED_GROUPS
+                else:
+                    # E8: only 2 games per region, pair them
+                    seed_groups = None
+
+                if seed_groups:
+                    for grp_a, grp_b in seed_groups:
+                        g_a = next((g for g in finals if g["seed_a"] in grp_a or g["seed_b"] in grp_a), None)
+                        g_b = next((g for g in finals if g["seed_a"] in grp_b or g["seed_b"] in grp_b), None)
+                        if not g_a or not g_b:
+                            continue
+                        w1, w2 = g_a["winner"], g_b["winner"]
+                        if (w1, w2) in existing_next or (w2, w1) in existing_next:
+                            continue
+                        s1, s2 = _get_winner_seed(g_a), _get_winner_seed(g_b)
+                        derived.append({
+                            "region": region, "seed_a": s1, "seed_b": s2,
+                            "team_a": w1, "team_b": w2,
+                            "score_a": None, "score_b": None,
+                            "winner": None, "status": "upcoming",
+                            "overtime": False, "round": next_rd,
+                        })
+                else:
+                    # E8: 2 games per region → region winner for FF
+                    if len(finals) == 2:
+                        w1, w2 = finals[0]["winner"], finals[1]["winner"]
+                        if (w1, w2) not in existing_next and (w2, w1) not in existing_next:
+                            s1, s2 = _get_winner_seed(finals[0]), _get_winner_seed(finals[1])
+                            # E8 winners go to FF — handled below
+                            pass
+
+        elif rd_num == 4:
+            # Championship: pair the two FF winners
+            ff_finals = [g for g in rd_games if g["status"] == "final"]
+            champ_games = rounds.get("2", [])
+            champ_existing = {(g["team_a"], g["team_b"]) for g in champ_games}
+            if len(ff_finals) == 2:
+                w1, w2 = ff_finals[0]["winner"], ff_finals[1]["winner"]
+                if (w1, w2) not in champ_existing and (w2, w1) not in champ_existing:
+                    s1, s2 = _get_winner_seed(ff_finals[0]), _get_winner_seed(ff_finals[1])
+                    derived.append({
+                        "region": "Championship", "seed_a": s1, "seed_b": s2,
+                        "team_a": w1, "team_b": w2,
+                        "score_a": None, "score_b": None,
+                        "winner": None, "status": "upcoming",
+                        "overtime": False, "round": 2,
+                    })
+
+    # Final Four: East vs South, West vs Midwest
+    e8_games = rounds.get("8", [])
+    e8_finals = {g["region"]: g for g in e8_games if g["status"] == "final"}
+    ff_existing = rounds.get("4", [])
+    ff_teams = {(g["team_a"], g["team_b"]) for g in ff_existing}
+
+    for r1, r2 in [("East", "South"), ("West", "Midwest")]:
+        if r1 in e8_finals and r2 in e8_finals:
+            w1, w2 = e8_finals[r1]["winner"], e8_finals[r2]["winner"]
+            if (w1, w2) in ff_teams or (w2, w1) in ff_teams:
+                continue
+            s1, s2 = _get_winner_seed(e8_finals[r1]), _get_winner_seed(e8_finals[r2])
+            derived.append({
+                "region": f"{r1}/{r2}", "seed_a": s1, "seed_b": s2,
+                "team_a": w1, "team_b": w2,
+                "score_a": None, "score_b": None,
+                "winner": None, "status": "upcoming",
+                "overtime": False, "round": 4,
+            })
+
+    return derived
+
+
+@app.get("/api/live/bracket")
+def get_live_bracket():
+    """Return live tournament bracket with actual results and derived matchups."""
+    results = _load_results()
+    if results is None:
+        return JSONResponse(content={
+            "error": "Tournament results not yet available",
+            "rounds": {}, "first_four": [], "upsets": [],
+            "current_round": 64, "current_round_label": "Round of 64",
+            "progress": {"completed": 0, "total": 32, "pct": 0},
+        })
+
+    import copy
+    rounds = copy.deepcopy(results.get("rounds", {}))
+
+    # Derive next-round matchups and merge
+    derived = _derive_next_round_matchups(results)
+    for m in derived:
+        rd_key = str(m["round"])
+        if rd_key not in rounds:
+            rounds[rd_key] = []
+        rounds[rd_key].append(m)
+
+    # Determine current round and progress
+    current_round = 64
+    for rd in [64, 32, 16, 8, 4, 2]:
+        rd_games = rounds.get(str(rd), [])
+        if rd_games and any(g["status"] != "final" for g in rd_games):
+            current_round = rd
+            break
+        elif rd_games and all(g["status"] == "final" for g in rd_games):
+            current_round = rd // 2 if rd > 2 else 2
+        else:
+            break
+
+    cr_games = rounds.get(str(current_round), [])
+    completed = sum(1 for g in cr_games if g["status"] == "final")
+    total = len(cr_games) if cr_games else 32
+
+    # Collect upsets from all completed games
+    upsets = []
+    for rd_key, rd_games in rounds.items():
+        for g in rd_games:
+            if g["status"] == "final" and g.get("winner"):
+                winner_seed = g["seed_a"] if g["winner"] == g["team_a"] else g["seed_b"]
+                loser_seed = g["seed_b"] if g["winner"] == g["team_a"] else g["seed_a"]
+                if winner_seed > loser_seed:
+                    score_str = f"{g['score_a']}-{g['score_b']}"
+                    if g.get("overtime"):
+                        score_str += " OT"
+                    upsets.append({
+                        "round": int(rd_key), "winner": g["winner"],
+                        "winner_seed": winner_seed,
+                        "loser": g["team_a"] if g["winner"] == g["team_b"] else g["team_b"],
+                        "loser_seed": loser_seed, "score": score_str,
+                        "region": g["region"],
+                    })
+
+    return JSONResponse(content={
+        "last_updated": results.get("last_updated"),
+        "current_round": current_round,
+        "current_round_label": ROUND_LABELS.get(current_round, f"Round of {current_round}"),
+        "progress": {
+            "completed": completed, "total": total,
+            "pct": round(completed / max(total, 1) * 100, 1),
+        },
+        "first_four": results.get("first_four", []),
+        "rounds": rounds,
+        "upsets": upsets,
+    })
+
+
+@app.get("/api/live/upset-alerts")
+def get_live_upset_alerts():
+    """Return upset alerts for actual upcoming matchups in the next round."""
+    results = _load_results()
+    if results is None:
+        return JSONResponse(content={
+            "error": "Tournament results not yet available",
+            "round": 32, "round_label": "Round of 32",
+            "total_games": 0, "high_alerts": 0, "alerts": [],
+            "round_summary": {},
+        })
+
+    derived = _derive_next_round_matchups(results)
+    if not derived:
+        return JSONResponse(content={
+            "round": 32, "round_label": "Round of 32",
+            "total_games": 0, "high_alerts": 0, "alerts": [],
+            "round_summary": {"info": "No upcoming matchups with both teams known yet"},
+        })
+
+    target_round = min(m["round"] for m in derived)
+    target_matchups = [m for m in derived if m["round"] == target_round]
+
+    projected_picks = [{
+        "round": m["round"], "region": m["region"],
+        "team_a": m["team_a"], "team_b": m["team_b"],
+        "seed_a": m["seed_a"], "seed_b": m["seed_b"],
+    } for m in target_matchups]
+
+    state = _get_state()
+    from upset_detector import detect_upsets
+
+    alerts_df = detect_upsets(
+        state["curr"], state["bracket"],
+        state["refs"]["coach_results"],
+        state["refs"]["seed_results"],
+        state["refs"]["upset_seed_info"],
+        projected_picks=projected_picks,
+        vegas_lines=state["refs"].get("vegas_lines_2026"),
+    )
+
+    # Filter to only the target round
+    alerts_df = alerts_df[alerts_df["round"] == target_round]
+
+    round_summary = {
+        "total": len(alerts_df),
+        "high": int(alerts_df["high_alert"].sum()) if len(alerts_df) > 0 else 0,
+        "watch": int(((alerts_df["upset_score"] >= 2) & (~alerts_df["high_alert"])).sum()) if len(alerts_df) > 0 else 0,
+    }
+
+    return nan_safe_response({
+        "round": target_round,
+        "round_label": ROUND_LABELS.get(target_round, f"Round of {target_round}"),
+        "total_games": len(alerts_df),
+        "high_alerts": round_summary["high"],
+        "alerts": _sanitize(alerts_df.to_dict(orient="records")),
+        "round_summary": round_summary,
+    })
+
+
 @app.post("/api/override-pick")
 def override_pick(req: OverrideRequest):
     """Override a single pick and recalculate all downstream games.

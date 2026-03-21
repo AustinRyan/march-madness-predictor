@@ -139,3 +139,76 @@ export function useModelBenchmark() {
 
   return { benchmark, loading, error, fetchBenchmark };
 }
+
+export function useLiveBracket() {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchLiveBracket = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('/api/live/bracket');
+      setData(response.data);
+    } catch (err) {
+      const message =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to fetch live bracket data.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { data, loading, error, fetchLiveBracket };
+}
+
+export function useLiveUpsetAlerts() {
+  const [alerts, setAlerts] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchLiveAlerts = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('/api/live/upset-alerts');
+      const raw = response.data.alerts || [];
+      const FLAG_KEYS = [
+        'rank_within_15', 'tempo_mismatch_8', 'favorite_fading',
+        'dog_coach_above_avg', 'dog_luck_negative', 'style_clash_3pt',
+        'hist_upset_rate_30', 'elo_close', 'fav_soft_losses',
+        'vegas_close_line', 'vegas_upset_likely',
+      ];
+      const cleaned = raw.map((a) => ({
+        ...a,
+        triggered_flags: FLAG_KEYS.filter((k) => a[k] === true),
+        seed_favorite: a.higher_seed,
+        seed_underdog: a.lower_seed,
+        historical_rate: a.hist_upset_rate,
+      }));
+      setAlerts({
+        items: cleaned,
+        round: response.data.round,
+        roundLabel: response.data.round_label,
+        totalGames: response.data.total_games || 0,
+        highAlerts: response.data.high_alerts || 0,
+        roundSummary: response.data.round_summary || {},
+      });
+    } catch (err) {
+      const message =
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to fetch live upset alerts.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return { alerts, loading, error, fetchLiveAlerts };
+}

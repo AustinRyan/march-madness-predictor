@@ -1,0 +1,54 @@
+{
+  "year": 2026,
+  "last_updated": "2026-03-20T20:00:00",
+  "first_four": [
+    {"region": "West", "seed": 11, "team_a": "Texas", "team_b": "NC State", "score_a": 79, "score_b": 71, "winner": "Texas", "status": "final", "overtime": false},
+    {"region": "South", "seed": 16, "team_a": "Prairie View A&M", "team_b": "Lehigh", "score_a": 67, "score_b": 55, "winner": "Prairie View A&M", "status": "final", "overtime": false},
+    {"region": "Midwest", "seed": 16, "team_a": "Howard", "team_b": "UMBC", "score_a": 68, "score_b": 58, "winner": "Howard", "status": "final", "overtime": false},
+    {"region": "Midwest", "seed": 11, "team_a": "Miami (OH)", "team_b": "SMU", "score_a": 89, "score_b": 79, "winner": "Miami (OH)", "status": "final", "overtime": false}
+  ],
+  "rounds": {
+    "64": [
+      {"region": "East", "seed_a": 1, "seed_b": 16, "team_a": "Duke", "team_b": "Siena", "score_a": 71, "score_b": 65, "winner": "Duke", "status": "final", "overtime": false},
+      {"region": "East", "seed_a": 8, "seed_b": 9, "team_a": "Ohio State", "team_b": "TCU", "score_a": 64, "score_b": 66, "winner": "TCU", "status": "final", "overtime": false},
+      {"region": "East", "seed_a": 5, "seed_b": 12, "team_a": "St. John's", "team_b": "Northern Iowa", "score_a": null, "score_b": null, "winner": null, "status": "in_progress", "overtime": false},
+      {"region": "East", "seed_a": 4, "seed_b": 13, "team_a": "Kansas", "team_b": "Cal Baptist", "score_a": null, "score_b": null, "winner": null, "status": "upcoming", "overtime": false},
+      {"region": "East", "seed_a": 6, "seed_b": 11, "team_a": "Louisville", "team_b": "South Florida", "score_a": 83, "score_b": 79, "winner": "Louisville", "status": "final", "overtime": false},
+      {"region": "East", "seed_a": 3, "seed_b": 14, "team_a": "Michigan State", "team_b": "North Dakota State", "score_a": 92, "score_b": 67, "winner": "Michigan State", "status": "final", "overtime": false},
+      {"region": "East", "seed_a": 7, "seed_b": 10, "team_a": "UCLA", "team_b": "UCF", "score_a": null, "score_b": null, "winner": null, "status": "in_progress", "overtime": false},
+      {"region": "East", "seed_a": 2, "seed_b": 15, "team_a": "UConn", "team_b": "Furman", "score_a": null, "score_b": null, "winner": null, "status": "upcoming", "overtime": false},
+
+      {"region": "South", "seed_a": 1, "seed_b": 16, "team_a": "Florida", "team_b": "Prairie View A&M", "score_a": null, "score_b": null, "winner": null, "status": "upcoming", "overtime": false},
+      {"region": "South", "seed_a": 8, "seed_b": 9, "team_a": "Clemson", "team_b": "Iowa", "score_a": null, "score_b": null, "winner": null, "status": "in_progress", "overtime": false},
+      {"region": "South", "seed_a": 5, "seed_b": 12, "team_a": "Vanderbilt", "team_b": "McNeese", "score_a": 78, "score_b": 68, "winner": "Vanderbilt", "status": "final", "overtime": false},
+      {"region": "South", "seed_a": 4, "seed_b": 13, "team_a": "Nebraska", "team_b": "Troy", "score_a": 76, "score_b": 47, "winner": "Nebraska", "status": "final", "overtime": false},
+      {"region": "South", "seed_a": 6, "seed_b": 11, "team_a": "North Carolina", "team_b": "VCU", "score_a": 78, "score_b": 82, "winner": "VCU", "status": "final", "overtime": true},
+      {"region": "South", "seed_a": 3, "seed_b": 14, "team_a": "Illinois", "team_b": "Penn", "score_a": 105, "score_b": 70, "winner": "Illinois", "status": "final", "overtime": false},
+      {"region": "South", "seed_a": 7, "seed_b": 10, "team_a": "Saint Mary's", "team_b": "Texas A&M", "score_a": 50, "score_b": 63, "winner": "Texas A&M", "status": "final", "overtime": false},
+      {"region": "South", "seed_a": 2, "seed_b": 15, "team_a": "Houston", "team_b": "Idaho", "score_a": 78, "score_b": 47, "winner": "Houston", "status": "final", "overtime": false},
+
+      {"region": "West", "seed_a": 1, "seed_b": 16, "team_a": "Arizona", "team_b": "LIU", "score_a": 92, "score_b": 58, "winner": "Arizona", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 8, "seed_b": 9, "team_a": "Villanova", "team_b": "Utah State", "score_a": 76, "score_b": 86, "winner": "Utah State", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 5, "seed_b": 12, "team_a": "Wisconsin", "team_b": "High Point", "score_a": 82, "score_b": 83, "winner": "High Point", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 4, "seed_b": 13, "team_a": "Arkansas", "team_b": "Hawai'i", "score_a": 97, "score_b": 78, "winner": "Arkansas", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 6, "seed_b": 11, "team_a": "BYU", "team_b": "Texas", "score_a": 71, "score_b": 79, "winner": "Texas", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 3, "seed_b": 14, "team_a": "Gonzaga", "team_b": "Kennesaw State", "score_a": 73, "score_b": 64, "winner": "Gonzaga", "status": "final", "overtime": false},
+      {"region": "West", "seed_a": 7, "seed_b": 10, "team_a": "Miami (FL)", "team_b": "Missouri", "score_a": null, "score_b": null, "winner": null, "status": "upcoming", "overtime": false},
+      {"region": "West", "seed_a": 2, "seed_b": 15, "team_a": "Purdue", "team_b": "Queens", "score_a": null, "score_b": null, "winner": null, "status": "in_progress", "overtime": false},
+
+      {"region": "Midwest", "seed_a": 1, "seed_b": 16, "team_a": "Michigan", "team_b": "Howard", "score_a": 101, "score_b": 80, "winner": "Michigan", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 8, "seed_b": 9, "team_a": "Georgia", "team_b": "Saint Louis", "score_a": 77, "score_b": 102, "winner": "Saint Louis", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 5, "seed_b": 12, "team_a": "Texas Tech", "team_b": "Akron", "score_a": 91, "score_b": 71, "winner": "Texas Tech", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 4, "seed_b": 13, "team_a": "Alabama", "team_b": "Hofstra", "score_a": 90, "score_b": 70, "winner": "Alabama", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 6, "seed_b": 11, "team_a": "Tennessee", "team_b": "Miami (OH)", "score_a": 78, "score_b": 56, "winner": "Tennessee", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 3, "seed_b": 14, "team_a": "Virginia", "team_b": "Wright State", "score_a": 82, "score_b": 73, "winner": "Virginia", "status": "final", "overtime": false},
+      {"region": "Midwest", "seed_a": 7, "seed_b": 10, "team_a": "Kentucky", "team_b": "Santa Clara", "score_a": 89, "score_b": 84, "winner": "Kentucky", "status": "final", "overtime": true},
+      {"region": "Midwest", "seed_a": 2, "seed_b": 15, "team_a": "Iowa State", "team_b": "Tennessee State", "score_a": 108, "score_b": 74, "winner": "Iowa State", "status": "final", "overtime": false}
+    ],
+    "32": [],
+    "16": [],
+    "8": [],
+    "4": [],
+    "2": []
+  }
+}
