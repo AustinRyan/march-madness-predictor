@@ -687,22 +687,40 @@ def get_live_upset_alerts():
             "round_summary": {},
         })
 
+    # Collect all upcoming games: both current-round upcoming AND derived next-round
+    rounds = results.get("rounds", {})
+    all_upcoming = []
+
+    # Current round upcoming games (already in the JSON but not yet played)
+    for rd_key, rd_games in rounds.items():
+        for g in rd_games:
+            if g["status"] == "upcoming":
+                all_upcoming.append({
+                    "round": int(rd_key), "region": g["region"],
+                    "team_a": g["team_a"], "team_b": g["team_b"],
+                    "seed_a": g["seed_a"], "seed_b": g["seed_b"],
+                })
+
+    # Derived next-round matchups (from completed feeder games)
     derived = _derive_next_round_matchups(results)
-    if not derived:
+    for m in derived:
+        all_upcoming.append({
+            "round": m["round"], "region": m["region"],
+            "team_a": m["team_a"], "team_b": m["team_b"],
+            "seed_a": m["seed_a"], "seed_b": m["seed_b"],
+        })
+
+    if not all_upcoming:
         return JSONResponse(content={
             "round": 32, "round_label": "Round of 32",
             "total_games": 0, "high_alerts": 0, "alerts": [],
-            "round_summary": {"info": "No upcoming matchups with both teams known yet"},
+            "round_summary": {"info": "No upcoming matchups yet"},
         })
 
-    target_round = min(m["round"] for m in derived)
-    target_matchups = [m for m in derived if m["round"] == target_round]
-
-    projected_picks = [{
-        "round": m["round"], "region": m["region"],
-        "team_a": m["team_a"], "team_b": m["team_b"],
-        "seed_a": m["seed_a"], "seed_b": m["seed_b"],
-    } for m in target_matchups]
+    # Determine target round (highest round number = earliest in tournament)
+    # R32 (32) happens before S16 (16), so we want the max round number
+    target_round = max(m["round"] for m in all_upcoming)
+    target_matchups = [m for m in all_upcoming if m["round"] == target_round]
 
     state = _get_state()
     from upset_detector import detect_upsets
@@ -712,7 +730,7 @@ def get_live_upset_alerts():
         state["refs"]["coach_results"],
         state["refs"]["seed_results"],
         state["refs"]["upset_seed_info"],
-        projected_picks=projected_picks,
+        projected_picks=target_matchups,
         vegas_lines=state["refs"].get("vegas_lines_2026"),
     )
 
